@@ -10,26 +10,32 @@ from tqdm import trange
 
 def get_similarity_matrix(smiles, radius: int = 2, nBits: int = 1024, similarity: float = .9,
                           levenshtein_sim=True, structure_sim=True, scaffold_sim=True):
+    # Caching the MolFromSmiles function for efficient molecule conversion
     molecule = cache(MolFromSmiles)
 
     @cache
     def fingerprint(smi):
+        # Generates a fingerprint for a molecule for structural similarity comparison
         return GetMorganFingerprintAsBitVect(molecule(smi), radius=radius, nBits=nBits)
 
     @cache
     def scaffold_fingerprint(smi):
+        # Generates a scaffold fingerprint for a molecule
         mol = molecule(smi)
         try:
+            # Tries to create a generic framework (skeleton) of the molecule
             skeleton = GraphFramework(mol)
         except Exception:
+            # If the generic framework fails, uses the standard scaffold
             skeleton = GetScaffoldForMol(mol)
         return GetMorganFingerprintAsBitVect(skeleton, radius=radius, nBits=nBits)
 
     size = len(smiles)
     matrix = np.zeros([size, size], dtype=bool)
-    # Calculate upper triangle of matrix
+    # Calculate the upper triangle of the similarity matrix
     for i in trange(size - 1):
         for j in range(i + 1, size):
+            # Checks for similarity based on different criteria
             # similarity = 1 - distance
             if (levenshtein_sim and
                     1 - levenshtein(smiles[i], smiles[j]) / max(len(smiles[i]), len(smiles[j])) > similarity):
