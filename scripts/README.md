@@ -8,9 +8,9 @@ It evaluates similarity based on different criteria including Levenshtein distan
 1. Making predictions. 
 
 Prerequisites:
-Ensure that DeepPurpose is installed in your environment as `predict-model-name_dataset.ipynb` relies on DeepPurpose methods.
+Ensure that DeepPurpose is installed in your environment as `predict_model-name_dataset.ipynb` relies on DeepPurpose methods.
 
-- Go to `predict-model-name_dataset.ipynb`, load the dataset and the (pretrained) model. 
+- Go to `predict_model-name_dataset.ipynb`, load the dataset and the (pretrained) model. 
 - Get predictions and assess performance. 
 - Output files. Save the model predictions in `../analysis/model-name_dataset_predictions.csv`. Record the performance metrics in the first column of  `../analysis/model-name_dataset_performance.csv`.
 
