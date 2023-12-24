@@ -20,4 +20,4 @@ Ensure that DeepPurpose is installed in your environment as `predict_model-name_
 - Follow the steps in the script and assess the performance. 
 - Output files. Append performance metrics from the postprocessing to the `../analysis/model-name_dataset_performance.csv` file.
 
-
+Note: The performance is calculated individually for both the first and second elements in each activity cliff pair. An overall performance calculation across all pairs is also feasible.
