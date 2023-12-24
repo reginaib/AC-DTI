@@ -11,13 +11,13 @@ Prerequisites:
 Ensure that DeepPurpose is installed in your environment as `predict_model-name_dataset.ipynb` relies on DeepPurpose methods.
 
 - Go to `predict_model-name_dataset.ipynb`, load the dataset and the (pretrained) model. 
-- Get predictions and assess performance. 
+- Get predictions and assess performance by following the steps in the script. 
 - Output files. Save the model predictions in `../analysis/model-name_dataset_predictions.csv`. Record the performance metrics in the first column of  `../analysis/model-name_dataset_performance.csv`.
 
 2. Postprocessing. 
 - Go to `dataset.ipynb` file, load targets and drugs of the dataset.
 - Import the predictions you generated earlier to `unpivoted`.
-- Follow the steps in the script. 
+- Follow the steps in the script and assess the performance. 
 - Output files. Append performance metrics from the postprocessing to the `../analysis/model-name_dataset_performance.csv` file.
 
 
