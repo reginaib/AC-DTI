@@ -11,6 +11,9 @@ Prerequisites:
 Ensure that DeepPurpose is installed in your environment as `predict_model-name_dataset.ipynb` relies on DeepPurpose methods.
 
 - Go to `predict_model-name_dataset.ipynb`, load the dataset and the (pretrained) model. 
+
+Note: 'morgan_cnn_kiba' model matches to 'model_morgan_aac_kiba' when loading (specified in `utils.py` in DeepPurpose)
+
 - Get predictions and assess performance by following the steps in the script. 
 - Output files. Save the model predictions in `../analysis/model-name_dataset_predictions.csv`. Record the performance metrics in the first column of  `../analysis/model-name_dataset_performance.csv`.
 
