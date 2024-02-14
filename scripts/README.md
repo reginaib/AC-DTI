@@ -1,3 +1,7 @@
+`graphics.py`: contain methods for graphs creating
+
+`metrics.py`: methods to access the performance of the model
+
 `cliffs.py`: use  `get_similarity_matrix` method for comparing chemical structures represented by SMILES strings. 
 It evaluates similarity based on different criteria including Levenshtein distance, structural similarity, and scaffold similarity.
 
@@ -23,4 +27,3 @@ Note: 'morgan_cnn_kiba' model matches to 'model_morgan_aac_kiba' when loading (s
 - Follow the steps in the script and assess the performance. 
 - Output files. Append performance metrics from the postprocessing to the `../analysis/model_dataset_performance.csv` file.
 
-Note: The performance is calculated individually for both the first and second elements in each activity cliff pair. An overall performance calculation across all pairs is also feasible.
