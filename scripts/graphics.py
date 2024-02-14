@@ -47,3 +47,18 @@ def get_3d_plot(data, metric, general_performance, model_name):
 
     plt.savefig(f'../analysis/{model_name}_predictions_{metric}.png')
     plt.show()
+
+
+def get_heatmap(data, metric, model_name):
+    # Pivot the sorted DataFrame to create a matrix suitable for a heatmap
+    heatmap_data = data.pivot(index="threshold_similarity", columns="threshold_affinity", values=metric)
+
+    # Plotting the heatmap with the updated sorting
+    plt.figure(figsize=(10, 8))
+    ax = sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='viridis', cbar_kws={'label': metric})
+    plt.title('Threshold Affinity vs Threshold Similarity')
+    ax.set_xlabel('Threshold Affinity', size=12)
+    ax.set_ylabel('Threshold Similarity', size=12)
+    plt.gca().invert_yaxis()
+    plt.savefig(f'../analysis/{model_name}_predictions_{metric}_heatmap.png')
+    plt.show()
