@@ -1,4 +1,6 @@
-`graphics.py`: contain methods for graphs creating
+`dataset.py`: contains methods for required dataset generating
+
+`graphics.py`: contains methods for graphs creating
 
 `metrics.py`: methods to access the performance of the model
 
