@@ -56,10 +56,11 @@ def compound_based_split(data):
     train_compounds, validation_compounds, test_compounds = random_split(compounds)
 
     # Split the dataset based on the compounds
-    train = data[data['drug1'].isin(train_compounds)]
-    validation = data[data['drug1'].isin(validation_compounds)]
-    test = data[data['drug1'].isin(test_compounds)]
+    train = data[data['drug1'].isin(train_compounds) | data['drug2'].isin(train_compounds)]
+    validation = data[data['drug1'].isin(validation_compounds) | data['drug2'].isin(validation_compounds)]
+    test = data[data['drug1'].isin(test_compounds) | data['drug2'].isin(test_compounds)]
 
     return train, validation, test
     # cannot control the size of train, val-n, test
+
 
