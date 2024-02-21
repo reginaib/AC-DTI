@@ -51,7 +51,7 @@ def random_split(data):
 # Split the data compound-based
 def compound_based_split(data):
     # Taking the unique compounds
-    compounds = data['drug1'].unique()
+    compounds = pd.concat([data['drug1'], data['drug2']]).unique()
 
     train_compounds, validation_compounds, test_compounds = random_split(compounds)
 
