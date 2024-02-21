@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 from cliffs import get_similarity_matrix
 
 
@@ -38,3 +39,27 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
     pairs_df = pd.concat(pairs, ignore_index=True)
 
     return pairs_df
+
+
+# Split the data randomly
+def random_split(data):
+    train, temp = train_test_split(data, test_size=0.3, random_state=42)  # 70% train, 30% temp
+    validation, test = train_test_split(temp, test_size=(2/3), random_state=42)  # 10% validation, 20% test from temp
+    return train, validation, test
+
+
+# Split the data compound-based
+def compound_based_split(data):
+    # Taking the unique compounds
+    compounds = data['drug1'].unique()
+
+    train_compounds, validation_compounds, test_compounds = random_split(compounds)
+
+    # Split the dataset based on the compounds
+    train = data[data['drug1'].isin(train_compounds)]
+    validation = data[data['drug1'].isin(validation_compounds)]
+    test = data[data['drug1'].isin(test_compounds)]
+
+    return train, validation, test
+    # cannot control the size of train, val-n, test
+
