@@ -41,26 +41,39 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
     return pairs_df
 
 
+def split_data(data, split):
+    if split == 'random':
+        train, validation, test = random_split(data)
+    elif split == 'compound-based':
+        train, validation, test = compound_based_split(data)
+    else:
+        raise ValueError('Split should be either random or compound-based')
+
+    train['split'] = 0
+    validation['split'] = 1
+    test['split'] = 2
+    data = pd.concat([train, validation, test])
+    return data
+
+
 # Split the data randomly
 def random_split(data):
-    train, temp = train_test_split(data, test_size=0.3, random_state=42)  # 70% train, 30% temp
-    validation, test = train_test_split(temp, test_size=(2/3), random_state=42)  # 10% validation, 20% test from temp
+    train, temp = train_test_split(data, test_size=0.3, random_state=42)
+    validation, test = train_test_split(temp, test_size=(2/3), random_state=42)
     return train, validation, test
 
 
 # Split the data compound-based
 def compound_based_split(data):
-    # Taking the unique compounds
     compounds = pd.concat([data['drug1'], data['drug2']]).unique()
 
     train_compounds, validation_compounds, test_compounds = random_split(compounds)
 
     # Split the dataset based on the compounds
-    train = data[data['drug1'].isin(train_compounds) | data['drug2'].isin(train_compounds)]
-    validation = data[data['drug1'].isin(validation_compounds) | data['drug2'].isin(validation_compounds)]
-    test = data[data['drug1'].isin(test_compounds) | data['drug2'].isin(test_compounds)]
-
+    train = data[data['drug1'].isin(train_compounds) | data['drug2'].isin(train_compounds)].copy()
+    validation = data[data['drug1'].isin(validation_compounds) | data['drug2'].isin(validation_compounds)].copy()
+    test = data[data['drug1'].isin(test_compounds) | data['drug2'].isin(test_compounds)].copy()
     return train, validation, test
-    # cannot control the size of train, val-n, test
+
 
 
