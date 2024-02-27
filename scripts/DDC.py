@@ -129,7 +129,7 @@ class DrugDrugData(LightningDataModule):
 
 wandb.login(key='fd8f6e44f8d81be3a652dbd8f4a47a7edf59e44c')
 model = DrugDrugCliffNN()
-data = DrugDrugData('../data/KIBA/kiba_cliff_pairs_ta_1_ts_0.9_cb.csv')
+data = DrugDrugData('../analysis/kiba_cliff_pairs_ta_1_ts_0.9_cb.csv')
 logger = WandbLogger(project='kiba_cb', job_type='train')
 
 trainer = Trainer(accelerator='cpu', max_epochs=10, logger=logger)
