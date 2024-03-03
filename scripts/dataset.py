@@ -30,7 +30,8 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
         current_pairs = pd.DataFrame({
             'drug1': d1.drug.values,
             'drug2': d2.drug.values,
-            'cliff': cliffs
+            'cliff': cliffs,
+            'target': g_name
         })
 
         pairs.append(current_pairs)  # Append the current group's pairs to the list
