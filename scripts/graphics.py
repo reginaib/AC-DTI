@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import pandas as pd
 
 
 def get_2d_plot(data, metric, threshold):
@@ -61,4 +62,16 @@ def get_heatmap(data, metric, model_name):
     ax.set_ylabel('Threshold Similarity', size=12)
     plt.gca().invert_yaxis()
     plt.savefig(f'../analysis/{model_name}_predictions_{metric}_heatmap.png')
+    plt.show()
+
+
+def get_hist_prop(data, col):
+    # Check if the DataFrame has hierarchical indexes or multi-level columns
+    if isinstance(data.index, pd.MultiIndex) or isinstance(data.columns, pd.MultiIndex):
+        data = data.reset_index()
+
+    plt.figure(figsize=(10, 6))
+    plt.hist(data[col].to_numpy(), color='blue', alpha=0.5, bins=50)
+    plt.xlabel(col)
+    plt.ylabel('Pairs')
     plt.show()

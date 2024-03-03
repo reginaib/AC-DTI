@@ -77,4 +77,17 @@ def compound_based_split(data):
     return train, validation, test
 
 
+def majority_vote(data):
+    majority_votes = data.groupby(['drug1', 'drug2'])['cliff'].apply(lambda x: np.bincount(x).argmax())
+    vote_df = pd.DataFrame(majority_votes).reset_index()
+    return vote_df
+
+
+def at_least_once_AC(data):
+    at_least_once = data.groupby(['drug1', 'drug2'])['cliff'].apply(lambda x: 1 if (x == 1).any() else 0)
+    ac_df = pd.DataFrame(at_least_once).reset_index()
+    return ac_df
+
+
+
 
