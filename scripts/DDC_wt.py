@@ -37,8 +37,12 @@ class DrugDrugCliffNN(LightningModule):
             nn.Linear(hidden_dim_c, 1)
         )
 
-        self.metrics = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
-                                        prefix='test/')
+        self.metrics_v = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
+                                          prefix='validation/')
+
+        self.metrics_t = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
+                                          prefix='test/')
+
 
     def forward(self, drug1, drug2, target):
         # Process each compound through the same branch
@@ -65,6 +69,7 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
+        self.metrics_v.update(preds.sigmoid(), clf)
         self.log('Validation/BCELoss', ls)
 
     def test_step(self, batch, *_):
@@ -72,12 +77,16 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
-        self.metrics.update(preds.sigmoid(), clf)
+        self.metrics_t.update(preds.sigmoid(), clf)
         self.log('Test/BCELoss', ls)
 
+    def on_validation_epoch_end(self):
+        self.log_dict(self.metrics_v.compute())
+        self.metrics_v.reset()
+
     def on_test_epoch_end(self):
-        self.log_dict(self.metrics.compute())
-        self.metrics.reset()
+        self.log_dict(self.metrics_t.compute())
+        self.metrics_t.reset()
 
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=1e-4)
