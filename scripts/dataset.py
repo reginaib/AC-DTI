@@ -67,13 +67,18 @@ def random_split(data):
 # Split the data compound-based
 def compound_based_split(data):
     compounds = pd.concat([data['drug1'], data['drug2']]).unique()
-
-    train_compounds, validation_compounds, test_compounds = random_split(compounds)
-
-    # Split the dataset based on the compounds
-    train = data[data['drug1'].isin(train_compounds) | data['drug2'].isin(train_compounds)].copy()
-    validation = data[data['drug1'].isin(validation_compounds) | data['drug2'].isin(validation_compounds)].copy()
+    temp_compounds, test_compounds = train_test_split(compounds, test_size=0.1, random_state=42)
     test = data[data['drug1'].isin(test_compounds) | data['drug2'].isin(test_compounds)].copy()
+    data_without_test = data[~data['drug1'].isin(test_compounds) &
+                             ~data['drug2'].isin(test_compounds)].copy()
+
+    compounds_2 = pd.concat([data_without_test['drug1'], data_without_test['drug2']]).unique()
+    train_compounds, validation_compounds = train_test_split(compounds_2, test_size=0.1, random_state=2)
+    validation = data_without_test[data_without_test['drug1'].isin(validation_compounds) |
+                                   data_without_test['drug2'].isin(validation_compounds)].copy()
+
+    train = data_without_test[~data_without_test['drug1'].isin(validation_compounds) &
+                              ~data_without_test['drug2'].isin(validation_compounds)].copy()
     return train, validation, test
 
 
