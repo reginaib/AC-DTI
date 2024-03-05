@@ -14,10 +14,11 @@ from itertools import chain
 from pickle import load, dump
 from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision
 from torchmetrics import MetricCollection
+from pytorch_lightning.callbacks import EarlyStopping
 
 
 class DrugDrugCliffNN(LightningModule):
-    def __init__(self, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128):
+    def __init__(self, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128, lr=1e-4):
         super().__init__()
         # The branch for processing each drug
         self.d_encoder = nn.Sequential(
@@ -42,7 +43,7 @@ class DrugDrugCliffNN(LightningModule):
 
         self.metrics_t = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
                                           prefix='test/')
-
+        self.save_hyperparameters()
 
     def forward(self, drug1, drug2, target):
         # Process each compound through the same branch
@@ -89,7 +90,7 @@ class DrugDrugCliffNN(LightningModule):
         self.metrics_t.reset()
 
     def configure_optimizers(self):
-        return Adam(self.parameters(), lr=1e-4)
+        return Adam(self.parameters(), lr=self.lr)
 
 
 class DrugDrugData(LightningDataModule):
@@ -149,11 +150,44 @@ class DrugDrugData(LightningDataModule):
         return DataLoader(self._test, batch_size=self.batch_size)
 
 
+config = {
+    "input_dim": 1024,
+    "hidden_dim_d": 128,
+    "hidden_dim_t": 128,
+    "hidden_dim_c": 128,
+    "lr": 1e-4,
+    "batch_size": 128,
+    "max_epochs": 10
+}
+
+
 wandb.login(key='fd8f6e44f8d81be3a652dbd8f4a47a7edf59e44c')
-model = DrugDrugCliffNN()
-data = DrugDrugData('../analysis/kiba_cliff_pairs_ta_1_ts_0.9_cb.csv')
+
+model = DrugDrugCliffNN(
+    input_dim=config['input_dim'],
+    hidden_dim_d=config['hidden_dim_d'],
+    hidden_dim_t=config['hidden_dim_t'],
+    hidden_dim_c=config['hidden_dim_c'],
+    lr=config['lr']
+)
+
+data = DrugDrugData('../analysis/kiba_cliff_pairs_ta1_ts0.9_cb_wt.csv')
 logger = WandbLogger(project='kiba_cb', job_type='train')
 
-trainer = Trainer(accelerator='cpu', max_epochs=10, logger=logger)
+early_stop_callback = EarlyStopping(
+    monitor='Validation/BCELoss',
+    min_delta=0.00,
+    patience=5,
+    verbose=True,
+    mode='min'
+)
+
+trainer = Trainer(
+    accelerator='cpu',
+    max_epochs=config['max_epochs'],
+    logger=logger,
+    callbacks=[early_stop_callback]  # Include the callback here
+)
+
 trainer.fit(model, data)
 trainer.test(model, data)
