@@ -20,6 +20,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 class DrugDrugCliffNN(LightningModule):
     def __init__(self, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128, lr=1e-4):
         super().__init__()
+        self.lr = lr
         # The branch for processing each drug
         self.d_encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim_d),
@@ -29,7 +30,7 @@ class DrugDrugCliffNN(LightningModule):
             nn.ReLU()
         )
 
-        self.t_encoder = nn.Embedding(230, 128)
+        self.t_encoder = nn.Embedding(230, hidden_dim_t)
 
         self.classifier = nn.Sequential(
             nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c),
