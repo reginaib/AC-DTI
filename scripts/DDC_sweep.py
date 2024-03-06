@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import wandb
-from lightning import LightningModule, Trainer, LightningDataModule
+
 from lightning.pytorch.loggers import WandbLogger
 from torch import nn
 from torch.nn import functional as F
@@ -15,6 +15,8 @@ from pickle import load, dump
 from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision
 from torchmetrics import MetricCollection
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning import LightningModule, Trainer, LightningDataModule
+
 
 
 class DrugDrugCliffNN(LightningModule):
@@ -169,7 +171,7 @@ def optimize():
         accelerator='cpu',
         max_epochs=30,
         logger=logger,
-        callbacks=[early_stop_callback]  # Include the callback here
+        callbacks=[early_stop_callback]
     )
 
     data = DrugDrugData('../analysis/kiba_cliff_pairs_ta1_ts0.9_cb_wt.csv')
