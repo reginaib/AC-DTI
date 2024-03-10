@@ -19,24 +19,23 @@ from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
 
 class DrugDrugCliffNN(LightningModule):
-    def __init__(self, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128, lr=1e-4, dr=0.1):
+    def __init__(self, n_hidden_layers=2, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128,
+                 lr=1e-4, dr=0.1):
         super().__init__()
         self.lr = lr
+
         # The branch for processing each drug
-        self.d_encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim_d),
-            nn.ReLU(),
-            nn.Dropout(dr),
-            nn.Linear(hidden_dim_d, hidden_dim_d),
-            nn.ReLU()
-        )
+        layers = [nn.Linear(input_dim, hidden_dim_d), nn.ReLU(), nn.Dropout(dr)]
+        for _ in range(n_hidden_layers - 1):
+            layers.extend([nn.Linear(hidden_dim_d, hidden_dim_d), nn.ReLU(), nn.Dropout(dr)])
+        self.d_encoder = nn.Sequential(*layers)
 
         self.t_encoder = nn.Embedding(230, hidden_dim_t)
 
         self.classifier = nn.Sequential(
             nn.Linear(hidden_dim_d + hidden_dim_d + hidden_dim_t, hidden_dim_c),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(dr),
             nn.Linear(hidden_dim_c, 1)
         )
 
@@ -210,6 +209,7 @@ sweep_config = {
         'name': 'Validation/BCELoss'
     },
     'parameters': {
+        'n_hidden_layers': {'values': [2, 3, 4]},
         'hidden_dim_d': {'values': [128, 256, 512, 756, 1024]},
         'hidden_dim_t': {'values': [128, 256, 512, 756, 1024]},
         'hidden_dim_c': {'values': [128, 256, 512, 756, 1024]},
