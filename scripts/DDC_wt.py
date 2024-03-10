@@ -12,7 +12,7 @@ from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 from pandas import read_csv
 from itertools import chain
 from pickle import load, dump
-from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision
+from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision, BinaryAUROC, BinaryRecallAtFixedPrecision
 from torchmetrics import MetricCollection
 from pytorch_lightning.callbacks import EarlyStopping
 
@@ -39,10 +39,28 @@ class DrugDrugCliffNN(LightningModule):
             nn.Linear(hidden_dim_c, 1)
         )
 
-        self.metrics_v = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
+        self.metrics_tr = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryRecallAtFixedPrecision(min_precision=0.5)],
+                                           prefix='train/')
+
+        self.metrics_v = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryRecallAtFixedPrecision(min_precision=0.5)],
                                           prefix='validation/')
 
-        self.metrics_t = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
+        self.metrics_t = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryRecallAtFixedPrecision(min_precision=0.5)],
                                           prefix='test/')
         self.save_hyperparameters()
 
@@ -63,6 +81,7 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
+        self.metrics_tr.update(preds.sigmoid(), clf)
         self.log('Training/BCELoss', ls)
         return ls
 
@@ -81,6 +100,10 @@ class DrugDrugCliffNN(LightningModule):
         ls = F.binary_cross_entropy_with_logits(preds, clf)
         self.metrics_t.update(preds.sigmoid(), clf)
         self.log('Test/BCELoss', ls)
+
+    def on_train_epoch_end(self):
+        self.log_dict(self.metrics_tr.compute())
+        self.metrics_tr.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metrics_v.compute())
@@ -187,7 +210,7 @@ trainer = Trainer(
     accelerator='cpu',
     max_epochs=config['max_epochs'],
     logger=logger,
-    callbacks=[early_stop_callback]  # Include the callback here
+    callbacks=[early_stop_callback]
 )
 
 trainer.fit(model, data)

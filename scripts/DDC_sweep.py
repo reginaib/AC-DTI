@@ -12,22 +12,21 @@ from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 from pandas import read_csv
 from itertools import chain
 from pickle import load, dump
-from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision
+from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision, BinaryAUROC, BinaryRecallAtFixedPrecision
 from torchmetrics import MetricCollection
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
 
-
 class DrugDrugCliffNN(LightningModule):
-    def __init__(self, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128, lr=1e-4):
+    def __init__(self, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128, lr=1e-4, dr=0.1):
         super().__init__()
         self.lr = lr
         # The branch for processing each drug
         self.d_encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim_d),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(dr),
             nn.Linear(hidden_dim_d, hidden_dim_d),
             nn.ReLU()
         )
@@ -41,11 +40,30 @@ class DrugDrugCliffNN(LightningModule):
             nn.Linear(hidden_dim_c, 1)
         )
 
-        self.metrics_v = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
+        self.metrics_tr = MetricCollection([BinaryRecall(),
+                                            BinaryAccuracy(),
+                                            BinaryF1Score(),
+                                            BinaryPrecision(),
+                                            BinaryAUROC(),
+                                            BinaryRecallAtFixedPrecision(min_precision=0.5)],
+                                           prefix='train/')
+
+        self.metrics_v = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryRecallAtFixedPrecision(min_precision=0.5)],
                                           prefix='validation/')
 
-        self.metrics_t = MetricCollection([BinaryRecall(), BinaryAccuracy(), BinaryF1Score(), BinaryPrecision()],
+        self.metrics_t = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryRecallAtFixedPrecision(min_precision=0.5)],
                                           prefix='test/')
+        self.save_hyperparameters()
 
     def forward(self, drug1, drug2, target):
         # Process each compound through the same branch
@@ -64,6 +82,7 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
+        self.metrics_tr.update(preds.sigmoid(), clf)
         self.log('Training/BCELoss', ls)
         return ls
 
@@ -82,6 +101,10 @@ class DrugDrugCliffNN(LightningModule):
         ls = F.binary_cross_entropy_with_logits(preds, clf)
         self.metrics_t.update(preds.sigmoid(), clf)
         self.log('Test/BCELoss', ls)
+
+    def on_train_epoch_end(self):
+        self.log_dict(self.metrics_tr.compute())
+        self.metrics_tr.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metrics_v.compute())
@@ -174,7 +197,7 @@ def optimize():
         callbacks=[early_stop_callback]
     )
 
-    data = DrugDrugData('../analysis/kiba_cliff_pairs_ta1_ts0.9_cb_wt.csv')
+    data = DrugDrugData('data/kiba_cliff_pairs_ta1_ts0.9_cb_wt.csv')
 
     trainer.fit(model, data)
     trainer.test(model, data)
@@ -187,10 +210,11 @@ sweep_config = {
         'name': 'Validation/BCELoss'
     },
     'parameters': {
-        'hidden_dim_d': {'values': [2, 4, 6, 8]},
-        'hidden_dim_t': {'values': [2, 4, 6, 8]},
-        'hidden_dim_c': {'values': [2, 4, 6, 8]},
-        'lr': {'max': .001, 'min': .00001}
+        'hidden_dim_d': {'values': [128, 256, 512, 756, 1024]},
+        'hidden_dim_t': {'values': [128, 256, 512, 756, 1024]},
+        'hidden_dim_c': {'values': [128, 256, 512, 756, 1024]},
+        'lr': {'max': 0.001, 'min': 0.00001},
+        'dr': {'max': 0.5, 'min': 0.01},
     }
 }
 
