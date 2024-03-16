@@ -119,7 +119,7 @@ class DrugDrugCliffNN(LightningModule):
     def on_train_epoch_end(self):
         self.log_dict(self.metrics_tr.compute())
         self.log('Train/BinaryAUPRC', self.metric_prc_tr.compute())
-        self.metric_prc_v.reset()
+        self.metric_prc_tr.reset()
         self.metrics_tr.reset()
 
     def on_validation_epoch_end(self):
@@ -131,7 +131,7 @@ class DrugDrugCliffNN(LightningModule):
     def on_test_epoch_end(self):
         self.log_dict(self.metrics_t.compute())
         self.log('Test/BinaryAUPRC', self.metric_prc_t.compute())
-        self.metric_prc_v.reset()
+        self.metric_prc_t.reset()
         self.metrics_t.reset()
 
     def configure_optimizers(self):
