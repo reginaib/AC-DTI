@@ -14,7 +14,7 @@ from itertools import chain
 from pickle import load, dump
 from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision, BinaryAUROC, BinaryMatthewsCorrCoef
 from torchmetrics import MetricCollection
-from torcheval.metrics.functional import binary_auprc
+from torcheval.metrics import BinaryAUPRC
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
@@ -27,8 +27,8 @@ class DrugDrugCliffNN(LightningModule):
         self.pos_weight = pos_weight
 
         # adjusting dims
-        hidden_dim_t = hidden_dim_d * 0.5
-        hidden_dim_c = hidden_dim_t * 0.5
+        hidden_dim_t = int(hidden_dim_d * 0.5)
+        hidden_dim_c = int(hidden_dim_t * 0.5)
 
         # The branch for processing each drug
         layers = [nn.Linear(input_dim, hidden_dim_d), nn.ReLU(), nn.Dropout(dr)]
@@ -50,27 +50,27 @@ class DrugDrugCliffNN(LightningModule):
                                             BinaryF1Score(),
                                             BinaryPrecision(),
                                             BinaryAUROC(),
-                                            binary_auprc(),
                                             BinaryMatthewsCorrCoef()],
-                                           prefix='train/')
+                                           prefix='Train/')
+        self.metric_prc_tr = BinaryAUPRC()
 
         self.metrics_v = MetricCollection([BinaryRecall(),
                                            BinaryAccuracy(),
                                            BinaryF1Score(),
                                            BinaryPrecision(),
                                            BinaryAUROC(),
-                                           binary_auprc(),
                                            BinaryMatthewsCorrCoef()],
-                                          prefix='validation/')
+                                          prefix='Validation/')
+        self.metric_prc_v = BinaryAUPRC()
 
         self.metrics_t = MetricCollection([BinaryRecall(),
                                            BinaryAccuracy(),
                                            BinaryF1Score(),
                                            BinaryPrecision(),
                                            BinaryAUROC(),
-                                           binary_auprc(),
                                            BinaryMatthewsCorrCoef()],
-                                          prefix='test/')
+                                          prefix='Test/')
+        self.metric_prc_t = BinaryAUPRC()
         self.save_hyperparameters()
 
     def forward(self, drug1, drug2, target):
@@ -92,6 +92,7 @@ class DrugDrugCliffNN(LightningModule):
         ls = F.binary_cross_entropy_with_logits(preds, clf,
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
         self.metrics_tr.update(preds.sigmoid(), clf.long())
+        self.metric_prc_tr.update(preds.sigmoid(), clf.long())
         self.log('Training/BCELoss', ls)
         return ls
 
@@ -102,6 +103,7 @@ class DrugDrugCliffNN(LightningModule):
         ls = F.binary_cross_entropy_with_logits(preds, clf,
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
         self.metrics_v.update(preds.sigmoid(), clf.long())
+        self.metric_prc_v.update(preds.sigmoid(), clf.long())
         self.log('Validation/BCELoss', ls)
 
     def test_step(self, batch, *_):
@@ -111,18 +113,25 @@ class DrugDrugCliffNN(LightningModule):
         ls = F.binary_cross_entropy_with_logits(preds, clf,
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
         self.metrics_t.update(preds.sigmoid(), clf.long())
+        self.metric_prc_t.update(preds.sigmoid(), clf.long())
         self.log('Test/BCELoss', ls)
 
     def on_train_epoch_end(self):
         self.log_dict(self.metrics_tr.compute())
+        self.log('Train/BinaryAUPRC', self.metric_prc_tr.compute())
+        self.metric_prc_v.reset()
         self.metrics_tr.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metrics_v.compute())
+        self.log('Validation/BinaryAUPRC', self.metric_prc_v.compute())
+        self.metric_prc_v.reset()
         self.metrics_v.reset()
 
     def on_test_epoch_end(self):
         self.log_dict(self.metrics_t.compute())
+        self.log('Test/BinaryAUPRC', self.metric_prc_t.compute())
+        self.metric_prc_v.reset()
         self.metrics_t.reset()
 
     def configure_optimizers(self):
@@ -190,8 +199,7 @@ def optimize():
     wandb.init()
     config = wandb.config
     logger = WandbLogger()
-    model = DrugDrugCliffNN(hidden_dim_d=config.hidden_dim_d, hidden_dim_t=config.hidden_dim_t,
-                            hidden_dim_c=config.hidden_dim_c, lr=config.lr)
+    model = DrugDrugCliffNN(hidden_dim_d=config.hidden_dim_d, lr=config.lr, dr=config.dr)
 
     early_stop_callback = EarlyStopping(
         monitor='Validation/BCELoss',
@@ -208,7 +216,7 @@ def optimize():
         callbacks=[early_stop_callback]
     )
 
-    data = DrugDrugData('kiba_cliff_pairs_ta1_ts0.9_r_wt.csv')
+    data = DrugDrugData('data/kiba_cliff_pairs_ta1_ts0.9_r_wt.csv')
 
     trainer.fit(model, data)
     trainer.test(model, data)
