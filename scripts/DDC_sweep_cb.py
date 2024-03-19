@@ -21,7 +21,7 @@ from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
 class DrugDrugCliffNN(LightningModule):
     def __init__(self, n_hidden_layers=2, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128,
-                 lr=1e-4, dr=0.1, n_targets=222, pos_weight=6):
+                 lr=1e-4, dr=0.1, n_targets=222, pos_weight=2):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
@@ -208,7 +208,7 @@ def optimize():
 
     trainer = Trainer(
         accelerator='gpu',
-        max_epochs=50,
+        max_epochs=30,
         logger=logger,
         callbacks=[early_stop_callback]
     )
@@ -226,7 +226,7 @@ sweep_config = {
     },
     'parameters': {
         'n_hidden_layers': {'values': [1, 2, 3, 4]},
-        'hidden_dim_d': {'values': [32, 64, 128, 256, 512, 756, 1024]},
+        'hidden_dim_d': {'values': [128, 256, 512, 756, 1024]},
         'hidden_dim_t': {'values': [32, 64, 128, 256, 512, 756, 1024]},
         'hidden_dim_c': {'values': [32, 64, 128, 256, 512, 756, 1024]},
         'lr': {'values': [0.00001, 0.00003, 0.0001, 0.0003, 0.001]},
