@@ -21,7 +21,7 @@ from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
 class DrugDrugCliffNN(LightningModule):
     def __init__(self, n_hidden_layers=2, input_dim=1024, hidden_dim_d=128, hidden_dim_t=128, hidden_dim_c=128,
-                 lr=1e-4, dr=0.1, n_targets=222, pos_weight=6):
+                 lr=1e-4, dr=0.1, n_targets=222, pos_weight=2):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
@@ -51,7 +51,7 @@ class DrugDrugCliffNN(LightningModule):
                                             BinaryPrecision(),
                                             BinaryAUROC(),
                                             BinaryMatthewsCorrCoef()],
-                                           prefix='Train/')
+                                           prefix='train/')
         self.metric_prc_tr = BinaryAUPRC()
 
         self.metrics_v = MetricCollection([BinaryRecall(),
@@ -60,7 +60,7 @@ class DrugDrugCliffNN(LightningModule):
                                            BinaryPrecision(),
                                            BinaryAUROC(),
                                            BinaryMatthewsCorrCoef()],
-                                          prefix='Validation/')
+                                          prefix='validation/')
         self.metric_prc_v = BinaryAUPRC()
 
         self.metrics_t = MetricCollection([BinaryRecall(),
@@ -69,7 +69,7 @@ class DrugDrugCliffNN(LightningModule):
                                            BinaryPrecision(),
                                            BinaryAUROC(),
                                            BinaryMatthewsCorrCoef()],
-                                          prefix='Test/')
+                                          prefix='test/')
         self.metric_prc_t = BinaryAUPRC()
         self.save_hyperparameters()
 
@@ -139,7 +139,7 @@ class DrugDrugCliffNN(LightningModule):
 
 
 class DrugDrugData(LightningDataModule):
-    def __init__(self, csv, radius=2, n_bits=1024, cache='cache.data', batch_size=10):
+    def __init__(self, csv, radius=2, n_bits=1024, cache='cache.data', batch_size=100):
         super().__init__()
         self.prepare_data_per_node = False
         self.csv = csv
