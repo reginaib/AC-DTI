@@ -80,7 +80,7 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
-        self.metrics_tr.update(preds.sigmoid(), clf)
+        self.metrics_tr.update(preds.sigmoid(), clf.long())
         self.log('Training/BCELoss', ls)
         return ls
 
@@ -89,7 +89,7 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
-        self.metrics_v.update(preds.sigmoid(), clf)
+        self.metrics_v.update(preds.sigmoid(), clf.long())
         self.log('Validation/BCELoss', ls)
 
     def test_step(self, batch, *_):
@@ -97,7 +97,7 @@ class DrugDrugCliffNN(LightningModule):
 
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf)
-        self.metrics_t.update(preds.sigmoid(), clf)
+        self.metrics_t.update(preds.sigmoid(), clf.long())
         self.log('Test/BCELoss', ls)
 
     def on_train_epoch_end(self):
