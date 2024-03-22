@@ -1,8 +1,14 @@
 `dataset.py`: contains methods for required dataset generating
 
+`data_prepocessing.py`: contains methods for preprocessing the data
+
+`finetuning.py`: contains methods for fine-tuning the model
+
 `graphics.py`: contains methods for graphs creating
 
 `metrics.py`: methods to access the performance of the model
+
+`models.py`: contains methods for initializing the model
 
 `cliffs.py`: use  `get_similarity_matrix` method for comparing chemical structures represented by SMILES strings. 
 It evaluates similarity based on different criteria including Levenshtein distance, structural similarity, and scaffold similarity.
