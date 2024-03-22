@@ -5,10 +5,10 @@ sweep_config = {
         "method": "random",
         "metric": {
             "goal": "minimize",
-            "name": "Validation/BCELoss"
+            "name": "Validation/MAELoss"
         },
         "parameters": {
-            "mode": {"value": "DDC"},
+            "mode": {"value": "DTI"},
             "n_hidden_layers": {"values": [1, 2, 3, 4]},
             "hidden_dim_d": {"values": [32, 64, 128, 256, 512, 756, 1024]},
             "hidden_dim_t": {"values": [32, 64, 128, 256, 512, 756, 1024]},
@@ -20,9 +20,9 @@ sweep_config = {
             "patience": {"value": 15},
             "accelerator": {"value": "gpu"},
             "max_epochs": {"value": 100},
-            "dataset_name": {"value": "../analysis/kiba_cliff_pairs_ta1_ts0.9_r_wt.csv"},
+            "dataset_name": {"value": 'data/kiba_d_t_aff_smiles_split.csv'},
         }
 }
 
 
-start_sweep(config=sweep_config, project_name='DDC_sweep_3_', num_config=50)
+start_sweep(config=sweep_config, project_name='DTI_aff_sweep', num_config=50)
