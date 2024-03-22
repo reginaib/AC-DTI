@@ -89,7 +89,6 @@ class DrugDrugCliffNN(LightningModule):
 
     def training_step(self, batch):
         drug1, drug2, clf, target = batch
-
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf,
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
@@ -100,7 +99,6 @@ class DrugDrugCliffNN(LightningModule):
 
     def validation_step(self, batch, _):
         drug1, drug2, clf, target = batch
-
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf,
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
@@ -110,7 +108,6 @@ class DrugDrugCliffNN(LightningModule):
 
     def test_step(self, batch, *_):
         drug1, drug2, clf, target = batch
-
         preds = self(drug1, drug2, target)
         ls = F.binary_cross_entropy_with_logits(preds, clf,
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
@@ -149,21 +146,19 @@ def optimize():
                             hidden_dim_t=config.hidden_dim_t,
                             hidden_dim_c=config.hidden_dim_c,
                             lr=config.lr,
-                            dr=config.dr
-    )
-
+                            dr=config.dr)
 
     early_stop_callback = EarlyStopping(
         monitor='Validation/BCELoss',
         min_delta=0.00,
-        patience=5,
+        patience=15,
         verbose=True,
         mode='min'
     )
 
     trainer = Trainer(
         accelerator='gpu',
-        max_epochs=30,
+        max_epochs=50,
         logger=logger,
         callbacks=[early_stop_callback]
     )
