@@ -9,14 +9,16 @@ from data_preprocessing import DrugDrugData, DrugTargetData
 
 def initialize_model(mode, config, logger):
     if mode == 'DDC':
-        model = DrugDrugCliffNN(hidden_dim_d=config.hidden_dim_d,
+        model = DrugDrugCliffNN(n_hidden_layers=config.n_hidden_layers,
+                                hidden_dim_d=config.hidden_dim_d,
                                 hidden_dim_t=config.hidden_dim_t,
                                 hidden_dim_c=config.hidden_dim_c,
                                 lr=config.lr,
                                 dr=config.dr)
         monitor = 'Validation/BCELoss'
     elif mode == 'DTI':
-        model = DrugTargetAffNN(hidden_dim_d=config.hidden_dim_d,
+        model = DrugTargetAffNN(n_hidden_layers=config.n_hidden_layers,
+                                hidden_dim_d=config.hidden_dim_d,
                                 hidden_dim_t=config.hidden_dim_t,
                                 hidden_dim_c=config.hidden_dim_c,
                                 lr=config.lr,
