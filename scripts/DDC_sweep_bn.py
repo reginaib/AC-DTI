@@ -15,8 +15,8 @@ from data_preprocessing import DrugDrugData
 
 
 class DrugDrugCliffNN(LightningModule):
-    def __init__(self, n_hidden_layers, input_dim, hidden_dim_d, hidden_dim_t, hidden_dim_c,lr, dr,
-                 n_targets=222, pos_weight=2, min_hidden_dim=32):
+    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
+                 input_dim=1024, n_targets=222, pos_weight=2, min_hidden_dim=32):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
