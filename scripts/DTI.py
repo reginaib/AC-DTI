@@ -2,19 +2,19 @@ from finetuning import start_training
 
 
 class config:
-    n_hidden_layers = 3
-    input_dim = 1024
-    hidden_dim_d = 256
-    hidden_dim_t = 256
-    hidden_dim_c = 128
-    lr = 1e-3
-    dr = 0.1
+    n_hidden_layers = 1
+    hidden_dim_d = 1024
+    hidden_dim_t = 756
+    hidden_dim_c = 756
+    lr = 0.0003
+    dr = 0.01
     patience = 15
     accelerator = 'gpu'
     max_epochs = 100
-    dataset_name = '../data/kiba_d_t_aff_smiles_split.csv'
+    dataset_name = './analysis/kiba_d_t_aff_smiles_split.csv'
+    pre_trained_d_encoder_path = None
 
 
-start_training(mode='DDC', config=config, project_name='DTI_aff')
+start_training(mode='DTI', config=config, project_name='DTI_aff_train')
 
 

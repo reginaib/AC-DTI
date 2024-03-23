@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.optim import Adam
-from torchmetrics.classification import BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision, BinaryAUROC, BinaryMatthewsCorrCoef
+from torchmetrics.classification import (BinaryRecall, BinaryAccuracy, BinaryF1Score, BinaryPrecision, BinaryAUROC,
+                                         BinaryMatthewsCorrCoef)
 from torchmetrics import MetricCollection, MeanSquaredError, MeanAbsoluteError, R2Score
 from torcheval.metrics import BinaryAUPRC
 from pytorch_lightning import LightningModule

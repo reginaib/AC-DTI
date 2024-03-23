@@ -22,7 +22,8 @@ def initialize_model(mode, config, logger):
                                 hidden_dim_t=config.hidden_dim_t,
                                 hidden_dim_c=config.hidden_dim_c,
                                 lr=config.lr,
-                                dr=config.dr)
+                                dr=config.dr,
+                                pre_trained_d_encoder_path=config.pre_trained_d_encoder_path)
         monitor = 'Validation/MAELoss'
 
     early_stop_callback = EarlyStopping(
