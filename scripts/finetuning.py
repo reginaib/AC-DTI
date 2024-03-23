@@ -1,7 +1,7 @@
 import wandb
 
 from lightning.pytorch.loggers import WandbLogger
-from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning import Trainer
 from models import DrugDrugCliffNN, DrugTargetAffNN
 from data_preprocessing import DrugDrugData, DrugTargetData
@@ -30,15 +30,18 @@ def initialize_model(mode, config, logger):
         min_delta=0.00,
         patience=config.patience,
         verbose=True,
-        mode='min'
-    )
+        mode='min')
+
+    checkpoint_callback = ModelCheckpoint(
+        monitor=monitor,
+        dirpath='results/',
+        filename='{epoch:02d}')
 
     trainer = Trainer(
         accelerator=config.accelerator,
         max_epochs=config.max_epochs,
         logger=logger,
-        callbacks=[early_stop_callback]
-    )
+        callbacks=[early_stop_callback, checkpoint_callback])
 
     if mode == 'DDC':
         data = DrugDrugData(config.dataset_name)
