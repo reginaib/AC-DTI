@@ -33,7 +33,6 @@ def initialize_model(mode, config, logger):
         mode='min')
 
     checkpoint_callback = ModelCheckpoint(
-        monitor=monitor,
         dirpath='results/',
         filename='{epoch:02d}')
 
