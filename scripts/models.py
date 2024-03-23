@@ -9,8 +9,8 @@ from pytorch_lightning import LightningModule
 
 
 class DrugDrugCliffNN(LightningModule):
-    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c,lr, dr,
-                 input_dim=1024, n_targets=222, pos_weight=2):
+    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
+                 input_dim=1024, n_targets=229, pos_weight=2):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
@@ -77,7 +77,7 @@ class DrugDrugCliffNN(LightningModule):
                                                 pos_weight=torch.tensor(self.pos_weight, device=self.device))
         self.metrics_tr.update(preds.sigmoid(), clf.long())
         self.metric_prc_tr.update(preds.sigmoid(), clf.long())
-        self.log('Training/BCELoss', ls)
+        self.log('Train/BCELoss', ls)
         return ls
 
     def validation_step(self, batch, _):
@@ -100,19 +100,19 @@ class DrugDrugCliffNN(LightningModule):
 
     def on_train_epoch_end(self):
         self.log_dict(self.metrics_tr.compute())
-        self.log('Train/BinaryAUPRC', self.metric_prc_tr.compute())
+        self.log('train/BinaryAUPRC', self.metric_prc_tr.compute())
         self.metric_prc_tr.reset()
         self.metrics_tr.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metrics_v.compute())
-        self.log('Validation/BinaryAUPRC', self.metric_prc_v.compute())
+        self.log('validation/BinaryAUPRC', self.metric_prc_v.compute())
         self.metric_prc_v.reset()
         self.metrics_v.reset()
 
     def on_test_epoch_end(self):
         self.log_dict(self.metrics_t.compute())
-        self.log('Test/BinaryAUPRC', self.metric_prc_t.compute())
+        self.log('test/BinaryAUPRC', self.metric_prc_t.compute())
         self.metric_prc_t.reset()
         self.metrics_t.reset()
 
@@ -122,7 +122,7 @@ class DrugDrugCliffNN(LightningModule):
 
 class DrugTargetAffNN(LightningModule):
     def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
-                 input_dim=1024, n_targets=229):
+                 input_dim=1024, n_targets=229, pre_trained_d_encoder_path=None):
         super().__init__()
         self.lr = lr
 
@@ -131,6 +131,12 @@ class DrugTargetAffNN(LightningModule):
         for _ in range(n_hidden_layers - 1):
             layers.extend([nn.Linear(hidden_dim_d, hidden_dim_d), nn.ReLU(), nn.Dropout(dr)])
         self.d_encoder = nn.Sequential(*layers)
+
+        # Load a pre-trained d_encoder model if the path is provided.
+        if pre_trained_d_encoder_path:
+            w = torch.load(pre_trained_d_encoder_path)
+            self.load_state_dict(
+                {k: v for k, v in w['state_dict'].items() if k.startswith(('d_encoder', 't_encoder'))}, strict=False)
 
         # Target encoder
         self.t_encoder = nn.Embedding(n_targets, hidden_dim_t)
@@ -169,9 +175,7 @@ class DrugTargetAffNN(LightningModule):
     def forward(self, drug, target):
         drug_out = self.d_encoder(drug)
         target_out = self.t_encoder(target)
-
         combined_out = torch.cat((drug_out, target_out), dim=1)
-
         return self.regressor(combined_out).flatten()
 
     def training_step(self, batch):
