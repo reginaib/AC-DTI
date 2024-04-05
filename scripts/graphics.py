@@ -56,12 +56,59 @@ def get_heatmap(data, metric, model_name):
 
     # Plotting the heatmap with the updated sorting
     plt.figure(figsize=(10, 8))
-    ax = sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='viridis', cbar_kws={'label': metric})
+    ax = sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='viridis',
+                     cbar_kws={'label': metric}, linewidths=.5, annot_kws={"size": 14})
     plt.title('Threshold Affinity vs Threshold Similarity')
-    ax.set_xlabel('Threshold Affinity', size=12)
-    ax.set_ylabel('Threshold Similarity', size=12)
+    ax.set_xlabel('Threshold Affinity', size=16)
+    ax.set_ylabel('Threshold Similarity', size=16)
     plt.gca().invert_yaxis()
     plt.savefig(f'../analysis/{model_name}_predictions_{metric}_heatmap.png')
+    plt.show()
+
+
+def get_pairs_heatmap(data, model_name):
+    # Pivot the data for the number of pairs
+    heatmap_pairs = data.pivot(index="threshold_similarity", columns="threshold_affinity", values="number_of_pairs")
+
+    heatmap_pairs = heatmap_pairs.fillna(0).astype(int)
+
+    # Plotting the heatmap for the number of pairs
+    plt.figure(figsize=(10, 8))
+    ax = sns.heatmap(heatmap_pairs, annot=True, fmt="d", cmap='viridis', cbar_kws={'label': 'Number of Pairs'},
+                     linewidths=.5, annot_kws={"size": 11})
+    plt.title(f'Number of Pairs per Threshold Combination - {model_name}')
+    ax.set_xlabel('Threshold Affinity', size=16)
+    ax.set_ylabel('Threshold Similarity', size=16)
+    plt.gca().invert_yaxis()
+
+    # Save the heatmap to a file
+    plt.savefig(f'../analysis/{model_name}_number_of_pairs_heatmap.png')
+    plt.show()
+
+
+def get_differential_heatmap(data_model1, data_model2, metric, title_suffix):
+    # Ensure the data is sorted consistently
+    data_model1 = data_model1.sort_values(by=["threshold_similarity", "threshold_affinity"])
+    data_model2 = data_model2.sort_values(by=["threshold_similarity", "threshold_affinity"])
+
+    # Pivot the DataFrames to create matrices
+    heatmap_data_model1 = data_model1.pivot(index="threshold_similarity", columns="threshold_affinity", values=metric)
+    heatmap_data_model2 = data_model2.pivot(index="threshold_similarity", columns="threshold_affinity", values=metric)
+
+    # Compute the difference
+    heatmap_data_diff = heatmap_data_model1 - heatmap_data_model2
+
+    # Plotting the differential heatmap
+    plt.figure(figsize=(10, 8))
+    ax = sns.heatmap(heatmap_data_diff, annot=True, fmt=".2f", cmap='viridis',
+                     center=0,
+                     cbar_kws={'label': f'Difference in {metric}'}, linewidths=.5,
+                     annot_kws={"size": 14})
+    plt.title(f'Differential Threshold Affinity vs Threshold Similarity - {title_suffix}')
+    ax.set_xlabel('Threshold Affinity', size=16)
+    ax.set_ylabel('Threshold Similarity', size=16)
+    plt.gca().invert_yaxis()
+    plt.savefig(f'../analysis/{title_suffix}_{metric}_diff_heatmap.png')
     plt.show()
 
 

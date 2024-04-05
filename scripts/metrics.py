@@ -74,12 +74,16 @@ def get_total_metrics(data, threshold_affinity: list[float], threshold_similarit
         for ts in threshold_similarity:
             groups = get_pairs(data, ta, ts)
 
+            if groups.empty:
+                print(f"No data available for threshold_affinity={ta} and threshold_similarity={ts}")
+                continue
+            number_of_pairs = len(groups)
             groups_perf_micro = get_performance(groups, r2_rmse, 'micro')
             groups_perf_macro = get_performance(groups, r2_rmse, 'macro')
-            tmp = [ta, ts]
+            tmp = [ta, ts, number_of_pairs]
             tmp.extend(groups_perf_micro)
             tmp.extend(groups_perf_macro)
             results.append(tmp)
-    results = pd.DataFrame(results, columns=['threshold_affinity', 'threshold_similarity', 'r2_micro',
-                                             'rmse_micro', 'r2_macro', 'rmse_macro'])
+    results = pd.DataFrame(results, columns=['threshold_affinity', 'threshold_similarity', 'number_of_pairs',
+                                             'r2_micro', 'rmse_micro', 'r2_macro', 'rmse_macro'])
     return results
