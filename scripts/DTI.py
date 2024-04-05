@@ -14,6 +14,7 @@ class config:
     dataset_name = './analysis/kiba_d_t_aff_smiles_split.csv'
     pre_trained_d_encoder_path = './results/DTI_epoch_99.ckpt'
     preds_name = 'DTI_preds'
+    freeze = False
 
 
 start_training(mode='DTI', config=config, project_name='DTI_aff_train')
