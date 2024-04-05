@@ -123,7 +123,7 @@ class DrugDrugCliffNN(LightningModule):
 
 class DrugTargetAffNN(LightningModule):
     def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
-                 input_dim=1024, n_targets=229, pre_trained_d_encoder_path=None):
+                 input_dim=1024, n_targets=229, pre_trained_d_encoder_path=None, freeze=False):
         super().__init__()
         self.lr = lr
 
@@ -137,7 +137,11 @@ class DrugTargetAffNN(LightningModule):
         if pre_trained_d_encoder_path:
             w = torch.load(pre_trained_d_encoder_path)
             self.load_state_dict(
-                {k: v for k, v in w['state_dict'].items() if k.startswith(('d_encoder', 't_encoder'))}, strict=False)
+                {k: v for k, v in w['state_dict'].items() if k.startswith('d_encoder')}, strict=False)
+
+        if freeze:
+            for param in self.d_encoder.parameters():
+                param.requires_grad = False
 
         # Target encoder
         self.t_encoder = nn.Embedding(n_targets, hidden_dim_t)
@@ -155,21 +159,21 @@ class DrugTargetAffNN(LightningModule):
             'MSE': MeanSquaredError(),
             'MAE': MeanAbsoluteError(),
             'R2': R2Score(),
-        }, prefix='Train/')
+        }, prefix='train/')
 
         self.metrics_v = MetricCollection({
             'RMSE': MeanSquaredError(squared=False),
             'MSE': MeanSquaredError(),
             'MAE': MeanAbsoluteError(),
             'R2': R2Score(),
-        }, prefix='Validation/')
+        }, prefix='validation/')
 
         self.metrics_t = MetricCollection({
             'RMSE': MeanSquaredError(squared=False),
             'MSE': MeanSquaredError(),
             'MAE': MeanAbsoluteError(),
             'R2': R2Score(),
-        }, prefix='Test/')
+        }, prefix='test/')
 
         self.save_hyperparameters()
 
@@ -179,13 +183,17 @@ class DrugTargetAffNN(LightningModule):
         combined_out = torch.cat((drug_out, target_out), dim=1)
         return self.regressor(combined_out).flatten()
 
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        drug, target, aff = batch
+        return self(drug, target)
+
     def training_step(self, batch):
         drug, target1, aff = batch
 
         preds = self(drug, target1)
         ls = F.l1_loss(preds, aff)
         self.metrics_tr.update(preds, aff)
-        self.log('Training/MAELoss', ls)
+        self.log('Train/MAELoss', ls)
         return ls
 
     def validation_step(self, batch, _):

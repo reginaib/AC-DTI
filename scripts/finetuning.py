@@ -1,4 +1,5 @@
 import wandb
+import torch
 
 from lightning.pytorch.loggers import WandbLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -34,7 +35,6 @@ def initialize_model(mode, config, logger):
         mode='min')
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath='results/',
         filename='{epoch:02d}')
 
     trainer = Trainer(
@@ -51,11 +51,15 @@ def initialize_model(mode, config, logger):
     trainer.fit(model, data)
     trainer.test(model, data)
 
+    if mode == 'DTI':
+        predictions = torch.cat(trainer.predict(model, data.test_dataloader()))
+        torch.save(predictions, f'./results/{config.preds_name}')
+
 
 def optimize_sweep():
     wandb.init()
     config = wandb.config
-    logger = WandbLogger()
+    logger = WandbLogger(log_model='all')
     initialize_model(config.mode, config=config, logger=logger)
 
 
@@ -67,5 +71,5 @@ def start_sweep(config, project_name, num_config=15):
 
 def start_training(mode, config, project_name):
     wandb.login(key='fd8f6e44f8d81be3a652dbd8f4a47a7edf59e44c')
-    logger = WandbLogger(project=project_name, job_type='train')
+    logger = WandbLogger(project=project_name, job_type='train', log_model='all')
     initialize_model(mode, config, logger)
