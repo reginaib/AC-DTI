@@ -39,7 +39,7 @@ class DrugDrugCliffNN(LightningModule):
                                             BinaryPrecision(),
                                             BinaryAUROC(),
                                             BinaryMatthewsCorrCoef()],
-                                           prefix='train/')
+                                           prefix='Train/')
         self.metric_prc_tr = BinaryAUPRC()
 
         self.metrics_v = MetricCollection([BinaryRecall(),
@@ -48,7 +48,7 @@ class DrugDrugCliffNN(LightningModule):
                                            BinaryPrecision(),
                                            BinaryAUROC(),
                                            BinaryMatthewsCorrCoef()],
-                                          prefix='validation/')
+                                          prefix='Validation/')
         self.metric_prc_v = BinaryAUPRC()
 
         self.metrics_t = MetricCollection([BinaryRecall(),
@@ -57,7 +57,7 @@ class DrugDrugCliffNN(LightningModule):
                                            BinaryPrecision(),
                                            BinaryAUROC(),
                                            BinaryMatthewsCorrCoef()],
-                                          prefix='test/')
+                                          prefix='Test/')
         self.metric_prc_t = BinaryAUPRC()
         self.save_hyperparameters()
 
@@ -151,7 +151,10 @@ class DrugTargetAffNN(LightningModule):
         self.t_encoder = nn.Embedding(n_targets, hidden_dim_t)
 
         # Regression layers:
-        regressor_layers = [nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)]
+        if layer_to_d_encoder:
+            regressor_layers = [nn.Linear(hidden_dim_d_add + hidden_dim_t, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)]
+        else:
+            regressor_layers = [nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)]
         for _ in range(n_additional_dense_layers):
             regressor_layers.extend([nn.Linear(hidden_dim_c, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)])
         regressor_layers.append(nn.Linear(hidden_dim_c, 1))
@@ -162,21 +165,21 @@ class DrugTargetAffNN(LightningModule):
             'MSE': MeanSquaredError(),
             'MAE': MeanAbsoluteError(),
             'R2': R2Score(),
-        }, prefix='train/')
+        }, prefix='Train/')
 
         self.metrics_v = MetricCollection({
             'RMSE': MeanSquaredError(squared=False),
             'MSE': MeanSquaredError(),
             'MAE': MeanAbsoluteError(),
             'R2': R2Score(),
-        }, prefix='validation/')
+        }, prefix='Validation/')
 
         self.metrics_t = MetricCollection({
             'RMSE': MeanSquaredError(squared=False),
             'MSE': MeanSquaredError(),
             'MAE': MeanAbsoluteError(),
             'R2': R2Score(),
-        }, prefix='test/')
+        }, prefix='Test/')
 
         self.save_hyperparameters()
 

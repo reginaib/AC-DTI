@@ -25,7 +25,11 @@ def initialize_model(mode, config, logger):
                                 lr=config.lr,
                                 dr=config.dr,
                                 pre_trained_d_encoder_path=config.pre_trained_d_encoder_path,
-                                freeze=config.freeze)
+                                freeze=config.freeze,
+                                layer_to_d_encoder=config.layer_to_d_encoder,
+                                hidden_dim_d_add=config.hidden_dim_d_add,
+                                dr2=config.dr2,
+                                n_additional_dense_layers=config.n_additional_dense_layers)
         monitor = 'Validation/MAELoss'
 
     early_stop_callback = EarlyStopping(
@@ -35,14 +39,14 @@ def initialize_model(mode, config, logger):
         verbose=True,
         mode='min')
 
-    checkpoint_callback = ModelCheckpoint(
-        filename='{epoch:02d}')
+    #checkpoint_callback = ModelCheckpoint(
+    #    filename='{epoch:02d}')
 
     trainer = Trainer(
         accelerator=config.accelerator,
         max_epochs=config.max_epochs,
         logger=logger,
-        callbacks=[early_stop_callback, checkpoint_callback])
+        callbacks=[early_stop_callback])
 
     if mode == 'DDC':
         data = DrugDrugData(config.dataset_name)
