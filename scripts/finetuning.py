@@ -28,8 +28,7 @@ def initialize_model(mode, config, logger):
                                 freeze=config.freeze,
                                 layer_to_d_encoder=config.layer_to_d_encoder,
                                 hidden_dim_d_add=config.hidden_dim_d_add,
-                                dr2=config.dr2,
-                                n_additional_dense_layers=config.n_additional_dense_layers)
+                                dr2=config.dr2)
         monitor = 'Validation/MAELoss'
 
     early_stop_callback = EarlyStopping(
@@ -56,7 +55,7 @@ def initialize_model(mode, config, logger):
     trainer.fit(model, data)
     trainer.test(model, data)
 
-    if mode == 'DTI':
+    if config.save_preds:
         predictions = torch.cat(trainer.predict(model, data.test_dataloader()))
         torch.save(predictions, f'./results/{config.preds_name}')
 

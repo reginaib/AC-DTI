@@ -11,7 +11,7 @@ from pytorch_lightning import LightningModule
 
 class DrugDrugCliffNN(LightningModule):
     def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
-                 input_dim=1024, n_targets=229, pos_weight=2):
+                 input_dim=1024, n_targets=222, pos_weight=2):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
@@ -124,7 +124,7 @@ class DrugDrugCliffNN(LightningModule):
 class DrugTargetAffNN(LightningModule):
     def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
                  input_dim=1024, n_targets=229, pre_trained_d_encoder_path=None, freeze=False,
-                 layer_to_d_encoder=False, hidden_dim_d_add=0, dr2=0, n_additional_dense_layers=0):
+                 layer_to_d_encoder=False, hidden_dim_d_add=0, dr2=0):
         super().__init__()
         self.lr = lr
 
@@ -150,15 +150,13 @@ class DrugTargetAffNN(LightningModule):
         # Target encoder
         self.t_encoder = nn.Embedding(n_targets, hidden_dim_t)
 
-        # Regression layers:
-        if layer_to_d_encoder:
-            regressor_layers = [nn.Linear(hidden_dim_d_add + hidden_dim_t, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)]
-        else:
-            regressor_layers = [nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)]
-        for _ in range(n_additional_dense_layers):
-            regressor_layers.extend([nn.Linear(hidden_dim_c, hidden_dim_c), nn.ReLU(), nn.Dropout(dr)])
-        regressor_layers.append(nn.Linear(hidden_dim_c, 1))
-        self.regressor = nn.Sequential(*regressor_layers)
+        # Regression layer:
+        self.regressor = nn.Sequential(
+            nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c),
+            nn.ReLU(),
+            nn.Dropout(dr),
+            nn.Linear(hidden_dim_c, 1)
+        )
 
         self.metrics_tr = MetricCollection({
             'RMSE': MeanSquaredError(squared=False),
