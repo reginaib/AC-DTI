@@ -151,12 +151,17 @@ class DrugTargetAffNN(LightningModule):
         self.t_encoder = nn.Embedding(n_targets, hidden_dim_t)
 
         # Regression layer:
-        self.regressor = nn.Sequential(
-            nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c),
-            nn.ReLU(),
-            nn.Dropout(dr),
-            nn.Linear(hidden_dim_c, 1)
-        )
+        if layer_to_d_encoder:
+            regressor_layers = [nn.Linear(hidden_dim_d_add + hidden_dim_t, hidden_dim_c),
+                                nn.ReLU(),
+                                nn.Dropout(dr)]
+        else:
+            regressor_layers = [nn.Linear(hidden_dim_d + hidden_dim_t, hidden_dim_c),
+                                nn.ReLU(),
+                                nn.Dropout(dr)]
+
+        regressor_layers.append(nn.Linear(hidden_dim_c, 1))
+        self.regressor = nn.Sequential(*regressor_layers)
 
         self.metrics_tr = MetricCollection({
             'RMSE': MeanSquaredError(squared=False),
