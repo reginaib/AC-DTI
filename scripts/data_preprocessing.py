@@ -20,28 +20,40 @@ class DrugDrugData(LightningDataModule):
         self.batch_size = batch_size
 
     def prepare_data(self):
-        # expected next columns: smiles1, smiles2, cliff, split, target
         data = read_csv(self.csv)
 
         cache = {}
+        # Processing SMILES strings to build cache only for valid molecules
         for s in chain(data.smiles1, data.smiles2):
-            if s in cache:
-                continue
-            mol = MolFromSmiles(s)
-            fp = GetMorganFingerprintAsBitVect(mol, self.radius, nBits=self.n_bits)
-            arr = np.zeros((0,), dtype=np.int8)
-            DataStructs.ConvertToNumpyArray(fp, arr)
-            cache[s] = torch.tensor(arr, dtype=torch.float32)
+            if s not in cache:
+                try:
+                    mol = MolFromSmiles(s)
+                    if mol is not None:
+                        fp = GetMorganFingerprintAsBitVect(mol, self.radius, nBits=self.n_bits)
+                        arr = np.zeros((0,), dtype=np.int8)
+                        DataStructs.ConvertToNumpyArray(fp, arr)
+                        cache[s] = torch.tensor(arr, dtype=torch.float32)
+                except:
+                    pass
 
-        drugs1, drugs2 = [], []
-        for row in data.itertuples():
-            drugs1.append(cache[row.smiles1])
-            drugs2.append(cache[row.smiles2])
+        # Collect data for each row only if both SMILES strings are valid
+        drugs1, drugs2, cliffs, splits, targets = [], [], [], [], []
+        for index, row in data.iterrows():
+            if row.smiles1 in cache and row.smiles2 in cache:
+                drugs1.append(cache[row.smiles1])
+                drugs2.append(cache[row.smiles2])
+                cliffs.append(row.cliff)
+                splits.append(row.split)
+                targets.append(row.target)
+
+        # Convert lists to tensors using valid_indices to filter DataFrame directly
         drugs1 = torch.stack(drugs1)
         drugs2 = torch.stack(drugs2)
-        cliff = torch.tensor(data.cliff, dtype=torch.float32)
-        split = torch.tensor(data.split, dtype=torch.long)
-        target = torch.tensor(data.target, dtype=torch.long)
+        cliff = torch.tensor(cliffs, dtype=torch.float32)
+        split = torch.tensor(splits, dtype=torch.long)
+        target = torch.tensor(targets, dtype=torch.long)
+
+        # Save processed data
         with open(self.cache, 'wb') as f:
             dump((drugs1, drugs2, cliff, split, target), f)
 
