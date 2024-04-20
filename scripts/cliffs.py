@@ -1,6 +1,7 @@
 import numpy as np
 from functools import cache
 from Levenshtein import distance
+from rdkit import RDLogger
 from rdkit.Chem import MolFromSmiles
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 from rdkit.Chem.Scaffolds.MurckoScaffold import MakeScaffoldGeneric as GraphFramework, GetScaffoldForMol
@@ -8,9 +9,17 @@ from rdkit.DataStructs import TanimotoSimilarity
 from tqdm import trange
 
 
-# Cache the MolFromSmiles function for efficient molecule conversion
-molecule = cache(MolFromSmiles)
+RDLogger.DisableLog('rdApp.error')
 
+
+# Cache the MolFromSmiles function for efficient molecule conversion
+
+@cache
+def molecule(smi):
+    try:
+        return MolFromSmiles(smi)
+    except:
+        return
 
 
 @cache
@@ -42,7 +51,6 @@ def scaffold_tanimoto(smiles1, smiles2, radius, nBits):
         return 0
 
     return TanimotoSimilarity(scaffold_fp1, scaffold_fp2)
-
 
 
 @cache
