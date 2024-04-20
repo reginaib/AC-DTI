@@ -15,7 +15,8 @@ def initialize_model(mode, config, logger):
                                 hidden_dim_t=config.hidden_dim_t,
                                 hidden_dim_c=config.hidden_dim_c,
                                 lr=config.lr,
-                                dr=config.dr)
+                                dr=config.dr,
+                                n_targets=config.n_targets)
         monitor = 'Validation/BCELoss'
     elif mode == 'DTI':
         model = DrugTargetAffNN(n_hidden_layers=config.n_hidden_layers,
@@ -24,6 +25,7 @@ def initialize_model(mode, config, logger):
                                 hidden_dim_c=config.hidden_dim_c,
                                 lr=config.lr,
                                 dr=config.dr,
+                                n_targets=config.n_targets,
                                 pre_trained_d_encoder_path=config.pre_trained_d_encoder_path,
                                 freeze=config.freeze,
                                 layer_to_d_encoder=config.layer_to_d_encoder,
