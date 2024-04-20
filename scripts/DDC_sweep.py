@@ -9,6 +9,7 @@ sweep_config = {
         },
         "parameters": {
             "mode": {"value": "DDC"},
+            "n_targets": {"value": 676},
             "n_hidden_layers": {"values": [1, 2, 3, 4]},
             "hidden_dim_d": {"values": [32, 64, 128, 256, 512, 768, 1024]},
             "hidden_dim_t": {"values": [32, 64, 128, 256, 512, 768, 1024]},
@@ -20,7 +21,8 @@ sweep_config = {
             "patience": {"value": 15},
             "accelerator": {"value": "gpu"},
             "max_epochs": {"value": 100},
-            "dataset_name": {"value": "../analysis/kiba_cliff_pairs_ta1_ts0.9_r_wt.csv"},
+            "dataset_name": {"value": '../analysis/bindingdb_ki_cliff_pairs_ta1_ts0.9_r_wt.csv'},
+            "save_preds": {"value": False},
         }
 }
 
