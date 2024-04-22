@@ -94,20 +94,31 @@ class DrugTargetData(LightningDataModule):
 
         cache = {}
         for s in chain(affinity.smiles):
-            if s in cache:
-                continue
-            mol = MolFromSmiles(s)
-            fp = GetMorganFingerprintAsBitVect(mol, self.radius, nBits=self.n_bits)
-            arr = np.zeros((0,), dtype=np.int8)
-            DataStructs.ConvertToNumpyArray(fp, arr)
-            cache[s] = torch.tensor(arr, dtype=torch.float32)
+            if s not in cache:
+                try:
+                    mol = MolFromSmiles(s)
+                    if mol is not None:
+                        fp = GetMorganFingerprintAsBitVect(mol, self.radius, nBits=self.n_bits)
+                        arr = np.zeros((0,), dtype=np.int8)
+                        DataStructs.ConvertToNumpyArray(fp, arr)
+                        cache[s] = torch.tensor(arr, dtype=torch.float32)
+                except:
+                    pass
 
-        drugs = torch.stack([cache[x] for x in affinity.smiles])
-        target1 = torch.tensor(affinity.target, dtype=torch.long)
-        split = torch.tensor(affinity.split, dtype=torch.long)
-        affinity = torch.tensor(affinity.affinity, dtype=torch.float32)
+        drugs, affinities, splits, targets = [], [], [], []
+        for index, row in affinity.iterrows():
+            if row.smiles in cache:
+                drugs.append(cache[row.smiles])
+                affinities.append(row.affinity)
+                splits.append(row.split)
+                targets.append(row.target)
+
+        drugs = torch.stack(drugs)
+        affinity = torch.tensor(affinities, dtype=torch.float32)
+        split = torch.tensor(splits, dtype=torch.long)
+        target = torch.tensor(targets, dtype=torch.long)
         with open(self.cache, 'wb') as f:
-            dump((drugs, target1, affinity, split), f)
+            dump((drugs, target, affinity, split), f)
 
     def setup(self, stage=None):
         with open(self.cache, 'rb') as f:
