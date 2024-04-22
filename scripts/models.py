@@ -10,8 +10,8 @@ from pytorch_lightning import LightningModule
 
 
 class DrugDrugCliffNN(LightningModule):
-    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
-                 input_dim=1024, n_targets=222, pos_weight=2):
+    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr, n_targets,
+                 input_dim=1024, pos_weight=2):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
@@ -101,19 +101,19 @@ class DrugDrugCliffNN(LightningModule):
 
     def on_train_epoch_end(self):
         self.log_dict(self.metrics_tr.compute())
-        self.log('train/BinaryAUPRC', self.metric_prc_tr.compute())
+        self.log('Train/BinaryAUPRC', self.metric_prc_tr.compute())
         self.metric_prc_tr.reset()
         self.metrics_tr.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metrics_v.compute())
-        self.log('validation/BinaryAUPRC', self.metric_prc_v.compute())
+        self.log('Validation/BinaryAUPRC', self.metric_prc_v.compute())
         self.metric_prc_v.reset()
         self.metrics_v.reset()
 
     def on_test_epoch_end(self):
         self.log_dict(self.metrics_t.compute())
-        self.log('test/BinaryAUPRC', self.metric_prc_t.compute())
+        self.log('Test/BinaryAUPRC', self.metric_prc_t.compute())
         self.metric_prc_t.reset()
         self.metrics_t.reset()
 
@@ -122,8 +122,8 @@ class DrugDrugCliffNN(LightningModule):
 
 
 class DrugTargetAffNN(LightningModule):
-    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr,
-                 input_dim=1024, n_targets=229, pre_trained_d_encoder_path=None, freeze=False,
+    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr, n_targets,
+                 input_dim=1024, pre_trained_d_encoder_path=None, freeze=False,
                  layer_to_d_encoder=False, hidden_dim_d_add=0, dr2=0):
         super().__init__()
         self.lr = lr
@@ -231,6 +231,134 @@ class DrugTargetAffNN(LightningModule):
 
     def on_test_epoch_end(self):
         self.log_dict(self.metrics_t.compute())
+        self.metrics_t.reset()
+
+    def configure_optimizers(self):
+        return Adam(self.parameters(), lr=self.lr)
+
+
+class DrugDrugCliffCNN(LightningModule):
+    def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr, n_targets,
+                 in_channels, out_channels, kernel_size,
+                 input_dim=1024, pos_weight=2):
+        super().__init__()
+        self.lr = lr
+        self.pos_weight = pos_weight
+
+        # Encoder for the drug representations
+        layers = [
+            nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2),
+            nn.ReLU(),
+            nn.Dropout(dr),
+            nn.MaxPool1d(kernel_size=2, stride=2)
+        ]
+
+        current_channels = out_channels
+        for _ in range(n_hidden_layers - 1):
+            layers.extend([
+                nn.Conv1d(current_channels, current_channels, kernel_size, padding=kernel_size // 2),
+                nn.ReLU(),
+                nn.Dropout(dr),
+                nn.MaxPool1d(kernel_size=2, stride=2)  # Repeating MaxPooling after each conv layer
+            ])
+
+        layers.append(nn.Flatten())
+        self.d_encoder = nn.Sequential(*layers)
+        self.final_fc = nn.Linear(current_channels * (hidden_dim_d // (2 ** n_hidden_layers)), hidden_dim_d)
+
+        # Embedding layer for encoding target information
+        self.t_encoder = nn.Embedding(n_targets, hidden_dim_t)
+
+        # Classifier that combines the outputs of the drug encoders and target encoder
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_dim_d + hidden_dim_d + hidden_dim_t, hidden_dim_c),
+            nn.ReLU(),
+            nn.Dropout(dr),
+            nn.Linear(hidden_dim_c, 1)
+        )
+
+        self.metrics_tr = MetricCollection([BinaryRecall(),
+                                            BinaryAccuracy(),
+                                            BinaryF1Score(),
+                                            BinaryPrecision(),
+                                            BinaryAUROC(),
+                                            BinaryMatthewsCorrCoef()],
+                                           prefix='Train/')
+        self.metric_prc_tr = BinaryAUPRC()
+
+        self.metrics_v = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryMatthewsCorrCoef()],
+                                          prefix='Validation/')
+        self.metric_prc_v = BinaryAUPRC()
+
+        self.metrics_t = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryMatthewsCorrCoef()],
+                                          prefix='Test/')
+        self.metric_prc_t = BinaryAUPRC()
+        self.save_hyperparameters()
+
+    def forward(self, drug1, drug2, target):
+        # Process each compound through its encoder and concatenate the outputs
+        drug1_out = self.d_encoder(drug1)
+        drug2_out = self.d_encoder(drug2)
+        target_out = self.t_encoder(target)
+        combined_out = torch.cat((drug1_out, drug2_out, target_out), dim=1)
+
+        # Classifier prediction
+        return self.classifier(combined_out).flatten()
+
+    def training_step(self, batch):
+        drug1, drug2, clf, target = batch
+        preds = self(drug1, drug2, target)
+        ls = F.binary_cross_entropy_with_logits(preds, clf,
+                                                pos_weight=torch.tensor(self.pos_weight, device=self.device))
+        self.metrics_tr.update(preds.sigmoid(), clf.long())
+        self.metric_prc_tr.update(preds.sigmoid(), clf.long())
+        self.log('Train/BCELoss', ls)
+        return ls
+
+    def validation_step(self, batch, _):
+        drug1, drug2, clf, target = batch
+        preds = self(drug1, drug2, target)
+        ls = F.binary_cross_entropy_with_logits(preds, clf,
+                                                pos_weight=torch.tensor(self.pos_weight, device=self.device))
+        self.metrics_v.update(preds.sigmoid(), clf.long())
+        self.metric_prc_v.update(preds.sigmoid(), clf.long())
+        self.log('Validation/BCELoss', ls)
+
+    def test_step(self, batch, *_):
+        drug1, drug2, clf, target = batch
+        preds = self(drug1, drug2, target)
+        ls = F.binary_cross_entropy_with_logits(preds, clf,
+                                                pos_weight=torch.tensor(self.pos_weight, device=self.device))
+        self.metrics_t.update(preds.sigmoid(), clf.long())
+        self.metric_prc_t.update(preds.sigmoid(), clf.long())
+        self.log('Test/BCELoss', ls)
+
+    def on_train_epoch_end(self):
+        self.log_dict(self.metrics_tr.compute())
+        self.log('train/BinaryAUPRC', self.metric_prc_tr.compute())
+        self.metric_prc_tr.reset()
+        self.metrics_tr.reset()
+
+    def on_validation_epoch_end(self):
+        self.log_dict(self.metrics_v.compute())
+        self.log('validation/BinaryAUPRC', self.metric_prc_v.compute())
+        self.metric_prc_v.reset()
+        self.metrics_v.reset()
+
+    def on_test_epoch_end(self):
+        self.log_dict(self.metrics_t.compute())
+        self.log('test/BinaryAUPRC', self.metric_prc_t.compute())
+        self.metric_prc_t.reset()
         self.metrics_t.reset()
 
     def configure_optimizers(self):
