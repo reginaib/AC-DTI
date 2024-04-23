@@ -40,14 +40,19 @@ def initialize_model(mode, config, logger):
         verbose=True,
         mode='min')
 
-    #checkpoint_callback = ModelCheckpoint(
-    #    filename='{epoch:02d}')
+    checkpoint_callback = ModelCheckpoint(filename='./results/{epoch:02d}')
+
+    callbacks = [early_stop_callback]
+
+    if config.checkpoint:
+        callbacks.append(checkpoint_callback)
 
     trainer = Trainer(
         accelerator=config.accelerator,
         max_epochs=config.max_epochs,
         logger=logger,
-        callbacks=[early_stop_callback])
+        callbacks=callbacks
+    )
 
     if mode == 'DDC':
         data = DrugDrugData(config.dataset_name)
@@ -65,7 +70,7 @@ def initialize_model(mode, config, logger):
 def optimize_sweep():
     wandb.init()
     config = wandb.config
-    logger = WandbLogger(log_model='all')
+    logger = WandbLogger()
     initialize_model(config.mode, config=config, logger=logger)
 
 
