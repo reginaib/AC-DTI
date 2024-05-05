@@ -11,7 +11,7 @@ def get_pairs(data, threshold_affinity=1, threshold_similarity=0.9):
     # 'g_name' holds the name of the target, 'group' contains the corresponding rows (related to specific target)
     for g_name, group in data.groupby('target', sort=False):
         # Calculate the similarity matrix for the drug molecules (related to specific target)
-        sim = get_similarity_matrix(group.SMILES.to_list(), similarity=threshold_similarity)
+        sim = get_similarity_matrix(group.smiles.to_list(), similarity=threshold_similarity)
         # Find non-zero elements in the similarity matrix, indicating pairs of similar drugs
         i, j = sim.nonzero()
 
