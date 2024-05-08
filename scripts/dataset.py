@@ -70,7 +70,7 @@ def random_split(data):
 # Split the data compound-based
 def compound_based_split(data):
     compounds = pd.concat([data['drug1'], data['drug2']]).unique()
-    temp_compounds, test_compounds = train_test_split(compounds, test_size=0.1, random_state=42)
+    temp_compounds, test_compounds = train_test_split(compounds, test_size=0.2, random_state=42)
     test = data[data['drug1'].isin(test_compounds) | data['drug2'].isin(test_compounds)].copy()
     data_without_test = data[~data['drug1'].isin(test_compounds) &
                              ~data['drug2'].isin(test_compounds)].copy()
@@ -83,18 +83,6 @@ def compound_based_split(data):
     train = data_without_test[~data_without_test['drug1'].isin(validation_compounds) &
                               ~data_without_test['drug2'].isin(validation_compounds)].copy()
     return train, validation, test
-
-
-def majority_vote(data):
-    majority_votes = data.groupby(['drug1', 'drug2'])['cliff'].apply(lambda x: np.bincount(x).argmax())
-    vote_df = pd.DataFrame(majority_votes).reset_index()
-    return vote_df
-
-
-def at_least_once_AC(data):
-    at_least_once = data.groupby(['drug1', 'drug2'])['cliff'].apply(lambda x: 1 if (x == 1).any() else 0)
-    ac_df = pd.DataFrame(at_least_once).reset_index()
-    return ac_df
 
 
 def convert_y_unit(y, from_, to_):
