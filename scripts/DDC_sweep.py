@@ -9,7 +9,7 @@ sweep_config = {
         },
         "parameters": {
             "mode": {"value": "DDC"},
-            "n_targets": {"value": 676},
+            "n_targets": {"value": 666},
             "n_hidden_layers": {"values": [1, 2, 3, 4]},
             "hidden_dim_d": {"values": [32, 64, 128, 256, 512, 768, 1024]},
             "hidden_dim_t": {"values": [32, 64, 128, 256, 512, 768, 1024]},
@@ -21,10 +21,10 @@ sweep_config = {
             "patience": {"value": 15},
             "accelerator": {"value": "gpu"},
             "max_epochs": {"value": 100},
-            "dataset_name": {"value": '../analysis/bindingdb_ki_cliff_pairs_ta1_ts0.9_r_wt.csv'},
+            "dataset_name": {"value": './analysis/acnet_cliff_pairs_r_wt.csv'},
             "save_preds": {"value": False},
+            "checkpoint": {"value": False},
         }
 }
 
-
-start_sweep(config=sweep_config, project_name='DDC_sweep_r_conf100', num_config=100)
+start_sweep(config=sweep_config, project_name='DDC_ACNet_sweep', num_config=100)
