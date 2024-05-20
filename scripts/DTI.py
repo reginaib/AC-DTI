@@ -21,6 +21,7 @@ class config:
     hidden_dim_d_add = 0
     dr2 = 0
     save_preds = True
+    checkpoint = False
 
 
 start_training(mode='DTI', config=config, project_name='DTI_vary_all_best_train')
