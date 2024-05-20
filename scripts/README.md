@@ -1,37 +1,40 @@
-`dataset.py`: contains methods for required dataset generating
+# Working scripts 
+## Preprocessing Notebooks
+* `ds_kiba_preprocess.ipynb`:  Notebook for preprocessing the KIBA dataset.
+* `ds_bindingdb_preprocess.ipynb`: Notebook for preprocessing the BindingDB dataset.
 
-`data_prepocessing.py`: contains methods for preprocessing the data
+## Sweep and Training Scripts
+* `DDC_sweep.py`: Script to run parameter sweeps for the DDC task.
+* `DTI_sweep.py` Script to run parameter sweeps for the DTI baseline and transfer learning task.
+* `DDC_sweep_bn.py`: Script to analyze the effect of the bottleneck on the DDC task.
 
-`finetuning.py`: contains methods for fine-tuning the model
 
-`graphics.py`: contains methods for graphs creating
+* `DDC_wt.py`:  Script to train the DDC model with specified parameters.
+* `DTI.py`: Script to train the DTI baseline and transfer learning model with specified parameters.
 
-`metrics.py`: methods to access the performance of the model
+## Postprocessing Notebooks
+* `ds_kiba_postprocess.ipynb`: Notebook for postprocessing the results of the DTI baseline and transfer learning tasks on the KIBA dataset.
+* `ds_bindingdb_postprocess.ipynb`: Notebook for postprocessing the results of the DTI baseline and transfer learning tasks on the BindingDB dataset.
 
-`models.py`: contains methods for initializing the model
+# Scripts with helper functions
+## Data Handling
+* `cliffs.py`: Contains functions for comparing chemical structures represented by SMILES strings.
+* `dataset.py`: Contains functions for obtaining cliffs, splitting data, and preprocessing datasets during download.
+* `data_prepocessing.py`: Contains functions for further preprocessing the data before training.
 
-`cliffs.py`: use  `get_similarity_matrix` method for comparing chemical structures represented by SMILES strings. 
-It evaluates similarity based on different criteria including Levenshtein distance, structural similarity, and scaffold similarity.
+## Model Initialization and Training
+* `models.py`: Contains methods for initializing models.
+* `finetuning.py`: Contains methods for fine-tuning models.
 
-`dataset.ipynb` files contain postprocessing steps for activity cliffs identification for the relevant dataset
+## Visualization and Metrics
+* `graphics.py`: Contains functions for graphs creating
+* `metrics.py`: Contains functions to access the performance of the model
 
-## Performance evaluation
+## Initial Tryouts (Not Used)
+* `predict_morgan_cnn_kiba.ipynb`: Initial tryout for predicting with Morgan CNN on the KIBA dataset. 
+* `predict_mpnn_cnn_kiba.ipynb`: Initial tryout for predicting with MPNN CNN on the KIBA dataset.
 
-1. Making predictions. 
 
-Prerequisites:
-Ensure that DeepPurpose is installed in your environment as `predict_model_dataset.ipynb` relies on DeepPurpose methods.
 
-- Go to `predict_model_dataset.ipynb`, load the dataset and the (pretrained) model. 
 
-Note: 'morgan_cnn_kiba' model matches to 'model_morgan_aac_kiba' when loading (specified in `utils.py` in DeepPurpose)
-
-- Get predictions and assess performance by following the steps in the script. 
-- Output files. Save the model predictions in `../analysis/model_dataset_predictions.csv`. Record the performance metrics in the first column of  `../analysis/model_dataset_performance.csv`.
-
-2. Postprocessing. 
-- Go to `dataset.ipynb` file, load targets and drugs of the dataset.
-- Import the predictions you generated earlier to `unpivoted`.
-- Follow the steps in the script and assess the performance. 
-- Output files. Append performance metrics from the postprocessing to the `../analysis/model_dataset_performance.csv` file.
 
