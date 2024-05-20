@@ -47,12 +47,10 @@ def initialize_model(mode, config, logger):
     if config.checkpoint:
         callbacks.append(checkpoint_callback)
 
-    trainer = Trainer(
-        accelerator=config.accelerator,
-        max_epochs=config.max_epochs,
-        logger=logger,
-        callbacks=callbacks
-    )
+    trainer = Trainer(accelerator=config.accelerator,
+                      max_epochs=config.max_epochs,
+                      logger=logger,
+                      callbacks=callbacks)
 
     if mode == 'DDC':
         data = DrugDrugData(config.dataset_name)
