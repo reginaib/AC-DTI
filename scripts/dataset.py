@@ -1,8 +1,12 @@
 import pandas as pd
 import numpy as np
 import os
+import json
 from sklearn.model_selection import train_test_split
 from cliffs import get_similarity_matrix
+from itertools import combinations
+from tqdm import tqdm
+from joblib import Parallel, delayed
 
 
 def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
@@ -10,7 +14,7 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
 
     # Loop through each group in the data grouped by 'target'
     # 'g_name' holds the name of the target, 'group' contains the corresponding rows (related to specific target)
-    for g_name, group in data.groupby('target', sort=False):
+    for g_name, group in tqdm(data.groupby('target', sort=False), desc="Processing targets"):
         # Calculate the similarity matrix for the drug molecules (related to specific target)
         sim = get_similarity_matrix(group.SMILES.to_list(), similarity=threshold_similarity)
         # Find non-zero elements in the similarity matrix, indicating pairs of similar drugs
@@ -39,8 +43,51 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
 
         pairs.append(current_pairs)  # Append the current group's pairs to the list
 
-        # Concatenate all pairs into a single DataFrame
+    # Concatenate all pairs into a single DataFrame
     pairs_df = pd.concat(pairs, ignore_index=True)
+
+    return pairs_df
+
+
+def process_group(g_name, group):
+    group_pairs = []
+    # Get all possible pairs of rows in the group
+    drug_pairs = combinations(group.iterrows(), 2)
+
+    for (i1, d1), (i2, d2) in drug_pairs:
+        # Calculate the absolute difference in affinity between each pair of drugs
+        affinity_diff = abs(d1['affinity'] - d2['affinity'])
+
+        # Prepare a DataFrame for the current group with drug1, drug2, and affinity difference
+        current_pair = {
+            'drug1': d1['drug'],
+            'drug2': d2['drug'],
+            'smiles1': d1['SMILES'],
+            'smiles2': d2['SMILES'],
+            'affinity_difference': affinity_diff,
+            'target': g_name
+        }
+
+        group_pairs.append(current_pair)  # Append the current pair to the list
+
+    return group_pairs
+
+
+def get_affinity_differences(data):
+    pairs = []
+
+    # Loop through each group in the data grouped by 'target' in parallel
+    results = Parallel(n_jobs=-1, backend="multiprocessing")(
+        delayed(process_group)(g_name, group) for g_name, group in tqdm(data.groupby('target', sort=False),
+                                                                        desc="Processing targets")
+    )
+
+    # Flatten the list of lists
+    for group_pairs in results:
+        pairs.extend(group_pairs)
+
+    # Convert the list of pairs to a DataFrame
+    pairs_df = pd.DataFrame(pairs)
 
     return pairs_df
 

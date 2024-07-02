@@ -3,24 +3,34 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 from rdkit.Chem import MolFromSmiles, DataStructs
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
-from pandas import read_csv
+from pandas import read_csv, read_parquet
 from itertools import chain
 from pickle import load, dump
 from pytorch_lightning import LightningDataModule
 
 
 class DrugDrugData(LightningDataModule):
-    def __init__(self, csv, radius=2, n_bits=1024, cache='cache.data', batch_size=100):
+    def __init__(self, csv=None, parquet=None, task='classification', radius=2, n_bits=1024,
+                 cache='cache.data', batch_size=100):
         super().__init__()
         self.prepare_data_per_node = False
         self.csv = csv
+        self.parquet = parquet
+        self.task = task
         self.radius = radius
         self.n_bits = n_bits
         self.cache = cache
         self.batch_size = batch_size
 
     def prepare_data(self):
-        data = read_csv(self.csv)
+        if self.csv is not None and self.parquet is not None:
+            raise ValueError("Only one of 'csv' or 'parquet' should be provided.")
+        elif self.csv is not None:
+            data = read_csv(self.csv)
+        elif self.parquet is not None:
+            data = read_parquet(self.parquet)
+        else:
+            raise ValueError("Either 'csv' or 'parquet' must be provided.")
 
         cache = {}
         # Processing SMILES strings to build cache only for valid molecules
@@ -36,37 +46,41 @@ class DrugDrugData(LightningDataModule):
                 except:
                     pass
 
-        # Collect data for each row only if both SMILES strings are valid
-        drugs1, drugs2, cliffs, splits, targets = [], [], [], [], []
+        drugs1, drugs2, labels, splits, targets = [], [], [], [], []
+        task_column = 'cliff' if self.task == 'classification' else 'affinity_difference'
         for index, row in data.iterrows():
             if row.smiles1 in cache and row.smiles2 in cache:
                 drugs1.append(cache[row.smiles1])
                 drugs2.append(cache[row.smiles2])
-                cliffs.append(row.cliff)
+                labels.append(row[task_column])
                 splits.append(row.split)
                 targets.append(row.target)
 
         # Convert lists to tensors using valid_indices to filter DataFrame directly
         drugs1 = torch.stack(drugs1)
         drugs2 = torch.stack(drugs2)
-        cliff = torch.tensor(cliffs, dtype=torch.float32)
+        label = torch.tensor(labels, dtype=torch.float32)
         split = torch.tensor(splits, dtype=torch.long)
         target = torch.tensor(targets, dtype=torch.long)
 
         # Save processed data
         with open(self.cache, 'wb') as f:
-            dump((drugs1, drugs2, cliff, split, target), f)
+            dump((drugs1, drugs2, label, split, target), f)
 
     def setup(self, stage=None):
         with open(self.cache, 'rb') as f:
-            drugs1, drugs2, cliff, split, target = load(f)
+            data = load(f)
+
+        drugs1, drugs2, split, target = data['drugs1'], data['drugs2'], data['split'], data['target']
+
+        labels = data['cliff'] if self.task == 'classification' else data['affinity_difference']
 
         mask = split == 0
-        self._train = TensorDataset(drugs1[mask], drugs2[mask], cliff[mask], target[mask])
+        self._train = TensorDataset(drugs1[mask], drugs2[mask], labels[mask], target[mask])
         mask = split == 1
-        self._validation = TensorDataset(drugs1[mask], drugs2[mask], cliff[mask], target[mask])
+        self._validation = TensorDataset(drugs1[mask], drugs2[mask], labels[mask], target[mask])
         mask = split == 2
-        self._test = TensorDataset(drugs1[mask], drugs2[mask], cliff[mask], target[mask])
+        self._test = TensorDataset(drugs1[mask], drugs2[mask], labels[mask], target[mask])
 
     def train_dataloader(self):
         return DataLoader(self._train, batch_size=self.batch_size, shuffle=True)
