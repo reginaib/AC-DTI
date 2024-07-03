@@ -82,25 +82,19 @@ class DrugDrugData(LightningDataModule):
 
             df.to_parquet(self.cache)
 
-
     def setup(self, stage=None):
         if self.csv is not None:
             with open(self.cache, 'rb') as f:
-                data = load(f)
+                drugs1, drugs2, labels, split, target = load(f)
 
         elif self.parquet is not None:
             df = read_parquet(self.cache)
-            data = {
-                'drugs1': torch.tensor(df['drugs1'].tolist(), dtype=torch.float32),
-                'drugs2': torch.tensor(df['drugs2'].tolist(), dtype=torch.float32),
-                'label': torch.tensor(df['label'].tolist(), dtype=torch.float32),
-                'split': torch.tensor(df['split'].tolist(), dtype=torch.long),
-                'target': torch.tensor(df['target'].tolist(), dtype=torch.long)
-            }
 
-        drugs1, drugs2, split, target = data['drugs1'], data['drugs2'], data['split'], data['target']
-
-        labels = data['cliff'] if self.task == 'classification' else data['affinity_difference']
+            drugs1 = torch.tensor(df['drugs1'].tolist(), dtype=torch.float32)
+            drugs2 = torch.tensor(df['drugs2'].tolist(), dtype=torch.float32)
+            labels = torch.tensor(df['label'].tolist(), dtype=torch.float32)
+            split = torch.tensor(df['split'].tolist(), dtype=torch.long)
+            target = torch.tensor(df['target'].tolist(), dtype=torch.long)
 
         mask = split == 0
         self._train = TensorDataset(drugs1[mask], drugs2[mask], labels[mask], target[mask])
