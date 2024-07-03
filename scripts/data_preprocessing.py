@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import pandas as pd
 from torch.utils.data import DataLoader, TensorDataset
 from rdkit.Chem import MolFromSmiles, DataStructs
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
@@ -10,7 +11,7 @@ from pytorch_lightning import LightningDataModule
 
 
 class DrugDrugData(LightningDataModule):
-    def __init__(self, csv=None, parquet=None, task='classification', radius=2, n_bits=1024,
+    def __init__(self, csv=None, parquet=None, task=None, radius=2, n_bits=1024,
                  cache='cache.data', batch_size=100):
         super().__init__()
         self.prepare_data_per_node = False
@@ -56,20 +57,46 @@ class DrugDrugData(LightningDataModule):
                 splits.append(row.split)
                 targets.append(row.target)
 
-        # Convert lists to tensors using valid_indices to filter DataFrame directly
-        drugs1 = torch.stack(drugs1)
-        drugs2 = torch.stack(drugs2)
-        label = torch.tensor(labels, dtype=torch.float32)
-        split = torch.tensor(splits, dtype=torch.long)
-        target = torch.tensor(targets, dtype=torch.long)
+        if self.csv is not None:
+            # Convert lists to tensors using valid_indices to filter DataFrame directly
+            drugs1 = torch.stack(drugs1)
+            drugs2 = torch.stack(drugs2)
+            label = torch.tensor(labels, dtype=torch.float32)
+            split = torch.tensor(splits, dtype=torch.long)
+            target = torch.tensor(targets, dtype=torch.long)
 
-        # Save processed data
-        with open(self.cache, 'wb') as f:
-            dump((drugs1, drugs2, label, split, target), f)
+            # Save processed data
+            with open(self.cache, 'wb') as f:
+                dump((drugs1, drugs2, label, split, target), f)
+
+
+        elif self.parquet is not None:
+            # For Parquet, save directly as lists
+            df = pd.DataFrame({
+                'drugs1': [d.numpy().tolist() for d in drugs1],
+                'drugs2': [d.numpy().tolist() for d in drugs2],
+                'label': labels,
+                'split': splits,
+                'target': targets
+            })
+
+            df.to_parquet(self.cache)
+
 
     def setup(self, stage=None):
-        with open(self.cache, 'rb') as f:
-            data = load(f)
+        if self.csv is not None:
+            with open(self.cache, 'rb') as f:
+                data = load(f)
+
+        elif self.parquet is not None:
+            df = read_parquet(self.cache)
+            data = {
+                'drugs1': torch.tensor(df['drugs1'].tolist(), dtype=torch.float32),
+                'drugs2': torch.tensor(df['drugs2'].tolist(), dtype=torch.float32),
+                'label': torch.tensor(df['label'].tolist(), dtype=torch.float32),
+                'split': torch.tensor(df['split'].tolist(), dtype=torch.long),
+                'target': torch.tensor(df['target'].tolist(), dtype=torch.long)
+            }
 
         drugs1, drugs2, split, target = data['drugs1'], data['drugs2'], data['split'], data['target']
 

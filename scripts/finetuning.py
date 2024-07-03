@@ -16,8 +16,13 @@ def initialize_model(mode, config, logger):
                                 hidden_dim_c=config.hidden_dim_c,
                                 lr=config.lr,
                                 dr=config.dr,
-                                n_targets=config.n_targets)
-        monitor = 'Validation/BCELoss'
+                                n_targets=config.n_targets,
+                                task=config.task)
+        if config.task == 'classification':
+            monitor = 'Validation/BCELoss'
+        elif config.task == 'regression':
+            monitor = 'Validation/MAELoss'
+
     elif mode == 'DTI':
         model = DrugTargetAffNN(n_hidden_layers=config.n_hidden_layers,
                                 hidden_dim_d=config.hidden_dim_d,
@@ -53,7 +58,7 @@ def initialize_model(mode, config, logger):
                       callbacks=callbacks)
 
     if mode == 'DDC':
-        data = DrugDrugData(config.dataset_name)
+        data = DrugDrugData(csv=config.csv, parquet=config.parquet)
     elif mode == 'DTI':
         data = DrugTargetData(config.dataset_name)
 

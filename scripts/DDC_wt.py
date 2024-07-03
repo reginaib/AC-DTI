@@ -12,9 +12,11 @@ class config:
     patience = 15
     accelerator = 'gpu'
     max_epochs = 5
-    dataset_name = './analysis/acnet_cliff_pairs_r_wt.csv'
+    parquet = './analysis/kiba_pairs_aff_diffs_split_r_wt.parquet'
+    csv = None
     save_preds = False
     checkpoint = False
+    task = 'regression'
 
 
 start_training(mode='DDC', config=config, project_name='DDC_ACNet_tryout')
