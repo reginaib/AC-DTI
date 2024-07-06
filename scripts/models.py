@@ -177,7 +177,7 @@ class DrugDrugCliffNN(LightningModule):
 
 class DrugTargetAffNN(LightningModule):
     def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr, n_targets,
-                 input_dim=1024, pre_trained_d_encoder_path=None, freeze=False,
+                 input_dim=1024, pre_trained_d_encoder_path=None, pre_trained_t_encoder_path=None, freeze=False,
                  layer_to_d_encoder=False, hidden_dim_d_add=0, dr2=0):
         super().__init__()
         self.lr = lr
@@ -193,6 +193,11 @@ class DrugTargetAffNN(LightningModule):
             w = torch.load(pre_trained_d_encoder_path)
             self.load_state_dict(
                 {k: v for k, v in w['state_dict'].items() if k.startswith('d_encoder')}, strict=False)
+
+        if pre_trained_t_encoder_path:
+            w = torch.load(pre_trained_t_encoder_path)
+            self.load_state_dict(
+                {k: v for k, v in w['state_dict'].items() if k.startswith('t_encoder')}, strict=False)
 
         if freeze:
             for param in self.d_encoder.parameters():

@@ -32,6 +32,7 @@ def initialize_model(mode, config, logger):
                                 dr=config.dr,
                                 n_targets=config.n_targets,
                                 pre_trained_d_encoder_path=config.pre_trained_d_encoder_path,
+                                pre_trained_t_encoder_path=config.pre_trained_t_encoder_path,
                                 freeze=config.freeze,
                                 layer_to_d_encoder=config.layer_to_d_encoder,
                                 hidden_dim_d_add=config.hidden_dim_d_add,
