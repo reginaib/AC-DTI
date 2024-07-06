@@ -13,7 +13,7 @@ class config:
     accelerator = 'gpu'
     max_epochs = 100
     dataset_name = './analysis/kiba_d_t_aff_smiles_split.csv'
-    # pre_trained_d_encoder_path = './results/DDC_best_epoch_23.ckpt'
+    # pre_trained_d_encoder_path = './results/DDC_KIBA_best_epoch_23.ckpt'
     pre_trained_d_encoder_path = None
     preds_name = 'DTI_vary_all_train_best_1404'
     freeze = False
