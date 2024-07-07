@@ -3,20 +3,44 @@ import seaborn as sns
 import pandas as pd
 
 
-def get_heatmap(data, metric, model_name, save_fig=False):
+def plot_heatmap(data, metric, ax):
     # Pivot the sorted DataFrame to create a matrix suitable for a heatmap
     heatmap_data = data.pivot(index="threshold_similarity", columns="threshold_affinity", values=metric)
 
+    label = 'RMSE micro' if metric == 'rmse_micro' else 'RMSE macro'
+
     # Plotting the heatmap with the updated sorting
-    plt.figure(figsize=(10, 8))
-    ax = sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='viridis',
-                     cbar_kws={'label': metric}, linewidths=.5, annot_kws={"size": 14})
-    plt.title('Threshold Affinity vs Threshold Similarity')
+    sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='viridis',
+                     ax=ax,
+                     cbar_kws={'label': label}, linewidths=.5,
+                     annot_kws={"size": 18})
+
+    ax.set_title(f'{label}', size=18)
     ax.set_xlabel('Threshold Affinity', size=16)
     ax.set_ylabel('Threshold Similarity', size=16)
-    plt.gca().invert_yaxis()
-    if save_fig:
-        plt.savefig(f'../analysis/{model_name}_predictions_{metric}_heatmap.png')
+    ax.invert_yaxis()
+
+    # Increase the size of the tick labels
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
+
+    # Increase the size of the color bar label
+    cbar = ax.collections[0].colorbar
+    cbar.ax.yaxis.label.set_size(16)
+
+
+def get_heatmap(data, metric, model_name=None, save_fig=False):
+    if metric == 'both':
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 8))
+        plot_heatmap(data,'rmse_micro', ax1)
+        plot_heatmap(data, 'rmse_macro', ax2)
+        if save_fig:
+            plt.savefig(f'../analysis/{model_name}_both_heatmap.png')
+    else:
+        fig, ax = plt.subplots(figsize=(10, 8))
+        plot_heatmap(data, metric, ax)
+        if save_fig:
+            plt.savefig(f'../analysis/{model_name}_{metric}_heatmap.png')
     plt.show()
 
 
@@ -28,42 +52,73 @@ def get_pairs_heatmap(data, model_name, save_fig=False):
 
     # Plotting the heatmap for the number of pairs
     plt.figure(figsize=(10, 8))
-    ax = sns.heatmap(heatmap_pairs, annot=True, fmt="d", cmap='viridis', cbar_kws={'label': 'Number of Pairs'},
-                     linewidths=.5, annot_kws={"size": 11})
-    plt.title(f'Number of Pairs per Threshold Combination - {model_name}')
+    ax = sns.heatmap(heatmap_pairs, annot=True, fmt="d", cmap='viridis',
+                     cbar_kws={'label': 'Number of Pairs'}, linewidths=.5,
+                     annot_kws={"size": 14})
+
+    plt.title('Number of Pairs per Threshold Combination',  size=18)
     ax.set_xlabel('Threshold Affinity', size=16)
     ax.set_ylabel('Threshold Similarity', size=16)
     plt.gca().invert_yaxis()
 
-    if save_fig:
-        plt.savefig(f'../analysis/{model_name}_number_of_pairs_heatmap.png')
-    plt.show()
+    # Increase the size of the tick labels
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
+
+    # Increase the size of the color bar label
+    cbar = ax.collections[0].colorbar
+    cbar.ax.yaxis.label.set_size(16)
 
 
-def get_differential_heatmap(data_model1, data_model2, metric, title_suffix, save_fig=False):
+def plot_diff_heatmap(data_model1, data_model2, metric, ax):
     # Ensure the data is sorted consistently
     data_model1 = data_model1.sort_values(by=["threshold_similarity", "threshold_affinity"])
     data_model2 = data_model2.sort_values(by=["threshold_similarity", "threshold_affinity"])
 
     # Pivot the DataFrames to create matrices
-    heatmap_data_model1 = data_model1.pivot(index="threshold_similarity", columns="threshold_affinity", values=metric)
-    heatmap_data_model2 = data_model2.pivot(index="threshold_similarity", columns="threshold_affinity", values=metric)
+    heatmap_data_model1 = data_model1.pivot(index="threshold_similarity", columns="threshold_affinity",
+                                            values=metric)
+    heatmap_data_model2 = data_model2.pivot(index="threshold_similarity", columns="threshold_affinity",
+                                            values=metric)
 
     # Compute the difference
     heatmap_data_diff = heatmap_data_model1 - heatmap_data_model2
 
+    label = 'RMSE micro' if metric == 'rmse_micro' else 'RMSE macro'
+
     # Plotting the differential heatmap
-    plt.figure(figsize=(10, 8))
-    ax = sns.heatmap(heatmap_data_diff, annot=True, fmt=".2f", cmap='viridis',
-                     center=0,
-                     cbar_kws={'label': f'Difference in {metric}'}, linewidths=.5,
-                     annot_kws={"size": 14})
-    plt.title(f'Differential Threshold Affinity vs Threshold Similarity - {title_suffix}')
+    sns.heatmap(heatmap_data_diff, annot=True, fmt=".2f", cmap='viridis',
+                ax=ax,
+                cbar_kws={'label': f'Difference in {label}'}, linewidths=.5,
+                annot_kws={"size": 18})
+
+    ax.set_title(f'Difference in {label} \n Higher better', size=18)
     ax.set_xlabel('Threshold Affinity', size=16)
     ax.set_ylabel('Threshold Similarity', size=16)
-    plt.gca().invert_yaxis()
-    if save_fig:
-        plt.savefig(f'../analysis/{title_suffix}_{metric}_diff_heatmap.png')
+    ax.invert_yaxis()
+
+    # Increase the size of the tick labels
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
+
+    # Increase the size of the color bar label
+    cbar = ax.collections[0].colorbar
+    cbar.ax.yaxis.label.set_size(16)
+
+
+def get_differential_heatmap(data_model1, data_model2, metric, title_suffix=None, save_fig=False):
+    if metric == 'both':
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 8))
+        plot_diff_heatmap(data_model1, data_model2, 'rmse_micro', ax1)
+        plot_diff_heatmap(data_model1, data_model2, 'rmse_macro', ax2)
+        if save_fig:
+            plt.savefig(f'../analysis/{title_suffix}_both_diff_heatmap.png')
+    else:
+        fig, ax = plt.subplots(figsize=(10, 8))
+        plot_diff_heatmap(data_model1, data_model2, metric, ax)
+        if save_fig:
+            plt.savefig(f'../analysis/{title_suffix}_{metric}_diff_heatmap.png')
+
     plt.show()
 
 
