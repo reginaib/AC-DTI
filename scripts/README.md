@@ -30,11 +30,6 @@
 * `graphics.py`: Contains functions for graphs creating
 * `metrics.py`: Contains functions to access the performance of the model
 
-## Initial Tryouts (Not Used)
-* `predict_morgan_cnn_kiba.ipynb`: Initial tryout for predicting with Morgan CNN on the KIBA dataset. 
-* `predict_mpnn_cnn_kiba.ipynb`: Initial tryout for predicting with MPNN CNN on the KIBA dataset.
-
-
 
 
 
