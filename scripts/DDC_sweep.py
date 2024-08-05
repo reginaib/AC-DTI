@@ -9,7 +9,7 @@ sweep_config = {
         },
         "parameters": {
             "mode": {"value": "DDC"},
-            "n_targets": {"value": 229},
+            "n_targets": {"value": 219},
             "n_hidden_layers": {"values": [1, 2, 3, 4]},
             "hidden_dim_d": {"values": [32, 64, 128, 256, 512, 768, 1024]},
             "hidden_dim_t": {"values": [32, 64, 128, 256, 512, 768, 1024]},
@@ -21,12 +21,11 @@ sweep_config = {
             "patience": {"value": 15},
             "accelerator": {"value": "gpu"},
             "max_epochs": {"value": 100},
-            "parquet": {"value": './analysis/kiba_pairs_aff_diffs_split_r_wt.parquet'},
-            "csv": {"value": None},
+            "csv": {"value": './analysis/kiba_ddc_cb_ta1_ts0.9.csv'},
             "save_preds": {"value": False},
             "checkpoint": {"value": False},
-            "task": {"value": "regression"},
+            "task": {"value": "classification"},
         }
 }
 
-start_sweep(config=sweep_config, project_name='DDC_KIBA_aff_diff', num_config=100)
+start_sweep(config=sweep_config, project_name='DDC_KIBA_cb', num_config=100)

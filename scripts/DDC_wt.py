@@ -12,8 +12,7 @@ class config:
     patience = 15
     accelerator = 'gpu'
     max_epochs = 5
-    parquet = './analysis/kiba_pairs_aff_diffs_split_r_wt.parquet'
-    csv = None
+    csv = './analysis/kiba_pairs_aff_diffs_split_r_wt.csv'
     save_preds = False
     checkpoint = False
     task = 'regression'

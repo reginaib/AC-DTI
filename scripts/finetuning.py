@@ -59,7 +59,7 @@ def initialize_model(mode, config, logger):
                       callbacks=callbacks)
 
     if mode == 'DDC':
-        data = DrugDrugData(csv=config.csv, parquet=config.parquet)
+        data = DrugDrugData(csv=config.csv)
     elif mode == 'DTI':
         data = DrugTargetData(config.dataset_name)
 
