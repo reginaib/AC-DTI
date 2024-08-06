@@ -91,11 +91,11 @@ class DrugTargetData(LightningDataModule):
         self.batch_size = batch_size
 
     def prepare_data(self):
-        # : smiles, target, affinity, split
+        # SMILES, target, affinity, split
         affinity = read_csv(self.affinity)
 
         cache = {}
-        for s in chain(affinity.smiles):
+        for s in chain(affinity.SMILES):
             if s not in cache:
                 try:
                     mol = MolFromSmiles(s)
@@ -109,8 +109,8 @@ class DrugTargetData(LightningDataModule):
 
         drugs, affinities, splits, targets = [], [], [], []
         for index, row in affinity.iterrows():
-            if row.smiles in cache:
-                drugs.append(cache[row.smiles])
+            if row.SMILES in cache:
+                drugs.append(cache[row.SMILES])
                 affinities.append(row.affinity)
                 splits.append(row.split)
                 targets.append(row.target)
