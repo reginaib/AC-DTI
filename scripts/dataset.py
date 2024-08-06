@@ -55,89 +55,42 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9, task='class
     return pairs_df
 
 
-def process_group(g_name, group):
-    group_pairs = []
-    # Get all possible pairs of rows in the group
-    drug_pairs = combinations(group.iterrows(), 2)
-
-    for (i1, d1), (i2, d2) in drug_pairs:
-        # Calculate the absolute difference in affinity between each pair of drugs
-        affinity_diff = abs(d1['affinity'] - d2['affinity'])
-
-        # Prepare a DataFrame for the current group with drug1, drug2, and affinity difference
-        current_pair = {
-            'drug1': d1['drug'],
-            'drug2': d2['drug'],
-            'smiles1': d1['SMILES'],
-            'smiles2': d2['SMILES'],
-            'affinity_difference': affinity_diff,
-            'target': g_name
-        }
-
-        group_pairs.append(current_pair)  # Append the current pair to the list
-
-    return group_pairs
-
-
-def get_affinity_differences(data):
-    pairs = []
-
-    # Loop through each group in the data grouped by 'target' in parallel
-    results = Parallel(n_jobs=-1, backend="multiprocessing")(
-        delayed(process_group)(g_name, group) for g_name, group in tqdm(data.groupby('target', sort=False),
-                                                                        desc="Processing targets")
-    )
-
-    # Flatten the list of lists
-    for group_pairs in results:
-        pairs.extend(group_pairs)
-
-    # Convert the list of pairs to a DataFrame
-    pairs_df = pd.DataFrame(pairs)
-
-    return pairs_df
-
-
-def split_data(data, split):
-    if split == 'random':
-        train, validation, test = random_split(data)
-    elif split == 'compound-based':
-        train, validation, test = compound_based_split(data)
-    else:
-        raise ValueError('Split should be either random or compound-based')
+# Split the data randomly
+def random_split_data(data):
+    train, temp = train_test_split(data, test_size=0.3, random_state=42)
+    validation, test = train_test_split(temp, test_size=(2/3), random_state=42)
 
     train['split'] = 0
     validation['split'] = 1
     test['split'] = 2
     data = pd.concat([train, validation, test])
+
     return data
-
-
-# Split the data randomly
-def random_split(data):
-    train, temp = train_test_split(data, test_size=0.3, random_state=42)
-    validation, test = train_test_split(temp, test_size=(2/3), random_state=42)
-    return train, validation, test
 
 
 # Split the data compound-based
 def compound_based_split(data):
-    compounds = pd.concat([data['drug1'], data['drug2']]).unique()
-    temp_compounds, test_compounds = train_test_split(compounds, test_size=0.2, random_state=42)
-    test = data[data['drug1'].isin(test_compounds) | data['drug2'].isin(test_compounds)].copy()
-    data_without_test = data[~data['drug1'].isin(test_compounds) &
-                             ~data['drug2'].isin(test_compounds)].copy()
+    # Get the unique drugs
+    unique_drugs = data['drug'].unique()
 
-    compounds_2 = pd.concat([data_without_test['drug1'], data_without_test['drug2']]).unique()
-    train_compounds, validation_compounds = train_test_split(compounds_2, test_size=0.1, random_state=2)
-    validation = data_without_test[data_without_test['drug1'].isin(validation_compounds) |
-                                   data_without_test['drug2'].isin(validation_compounds)].copy()
+    # Split the drugs into train, validation, and test sets
+    train_drugs, temp_drugs = train_test_split(unique_drugs, test_size=0.3, random_state=42)
+    val_drugs, test_drugs = train_test_split(temp_drugs, test_size=(2/3), random_state=42)
 
-    train = data_without_test[~data_without_test['drug1'].isin(validation_compounds) &
-                              ~data_without_test['drug2'].isin(validation_compounds)].copy()
-    return train, validation, test
+    # Create train, validation, and test sets
+    train = data[data['drug'].isin(train_drugs)]
+    validation = data[data['drug'].isin(val_drugs)]
+    test = data[data['drug'].isin(test_drugs)]
+
+    train['split'] = 0
+    validation['split'] = 1
+    test['split'] = 2
+    data = pd.concat([train, validation, test])
+
+    return data
 
 
+# taken from DeepPurpose paper
 def convert_y_unit(y, from_, to_):
     array_flag = False
     if isinstance(y, (int, float)):
