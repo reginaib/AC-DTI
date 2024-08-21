@@ -5,6 +5,18 @@ import matplotlib.colors as mcolors
 
 
 def get_pairs_number(data):
+    """
+    Convert the data into a pivot table, summarizing the number of pairs for each combination
+    of threshold similarity and threshold affinity.
+
+    Args:
+        data (DataFrame): The input data containing columns for threshold similarity, threshold affinity,
+                          and number of pairs.
+
+    Returns:
+        DataFrame: A pivot table with threshold similarity as rows, threshold affinity as columns,
+                   and number of pairs as values.
+    """
     heatmap_pairs = data.pivot(index="threshold_similarity",
                                columns="threshold_affinity",
                                values="number_of_pairs")
@@ -12,8 +24,15 @@ def get_pairs_number(data):
     return heatmap_pairs
 
 
-# Create a mask for groups with number of pairs below 100
 def create_mask(data, ax):
+    """
+    Create and overlay a mask on the heatmap where the number of pairs is below 100.
+    This mask highlights these areas in grey.
+
+    Args:
+        data (DataFrame): The input data containing the number of pairs.
+        ax (Axes): The matplotlib axes to overlay the mask on.
+    """
     pairs_data = get_pairs_number(data)
 
     # Create a mask where the number of pairs is below 100
@@ -24,11 +43,21 @@ def create_mask(data, ax):
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
             if mask.iloc[i, j]:
+                # Add a rectangular patch on the cells that meet the mask condition
                 ax.add_patch(plt.Rectangle((j, i), 1, 1, fill=True,
                                            color=mask_color, linewidth=0))
 
 
 def plot_heatmap(data, metric, ax):
+    """
+    Plot a heatmap for the specified metric (RMSE micro or RMSE macro) based on the threshold
+    similarity and threshold affinity.
+
+    Args:
+       data (DataFrame): The input data containing metrics and thresholds.
+       metric (str): The metric to plot ('rmse_micro' or 'rmse_macro').
+       ax (Axes): The matplotlib axes to plot the heatmap on.
+    """
     # Pivot the sorted DataFrame to create a matrix suitable for a heatmap
     heatmap_data = data.pivot(index="threshold_similarity",
                               columns="threshold_affinity",
@@ -42,6 +71,7 @@ def plot_heatmap(data, metric, ax):
                 cbar_kws={'label': label}, linewidths=.5,
                 annot_kws={"size": 20})
 
+    # Overlay a mask on the heatmap
     create_mask(data, ax)
 
     ax.set_title(f'{label}', size=24)
@@ -53,14 +83,25 @@ def plot_heatmap(data, metric, ax):
     ax.tick_params(axis='x', labelsize=22)
     ax.tick_params(axis='y', labelsize=22)
 
-    # Increase the size of the color bar label
+    # Customize the color bar label size
     cbar = ax.collections[0].colorbar
     cbar.ax.yaxis.label.set_size(22)
     cbar.ax.tick_params(labelsize=20)
 
 
 def get_heatmap(data, metric, model_name=None, save_fig=False):
+    """
+    Generate and display a heatmap for the specified metric.
+    Optionally, generate heatmaps for both RMSE micro and macro.
+
+    Args:
+        data (DataFrame): The input data containing metrics and thresholds.
+        metric (str): The metric to plot ('rmse_micro', 'rmse_macro', or 'both').
+        model_name (str, optional): The model name to use when saving the figure. Defaults to None.
+        save_fig (bool, optional): Whether to save the heatmap as a file. Defaults to False.
+    """
     if metric == 'both':
+        # Plot heatmaps for both RMSE micro and RMSE macro side by side
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 8))
         plot_heatmap(data, 'rmse_micro', ax1)
         plot_heatmap(data, 'rmse_macro', ax2)
@@ -68,6 +109,7 @@ def get_heatmap(data, metric, model_name=None, save_fig=False):
         if save_fig:
             plt.savefig(f'../analysis/{model_name}_both_heatmap.png', dpi=300, bbox_inches='tight')
     else:
+        # Plot a single heatmap for the specified metric
         fig, ax = plt.subplots(figsize=(10, 8))
         plot_heatmap(data, metric, ax)
         if save_fig:
@@ -76,6 +118,16 @@ def get_heatmap(data, metric, model_name=None, save_fig=False):
 
 
 def get_pairs_heatmap(data, model_name, save_fig=False):
+    """
+    Generate and display a heatmap showing the number of pairs for each combination of threshold similarity
+    and threshold affinity.
+
+    Args:
+        data (DataFrame): The input data containing number of pairs and thresholds.
+        model_name (str): The model name to use when saving the figure.
+        save_fig (bool, optional): Whether to save the heatmap as a file. Defaults to False.
+    """
+
     # Pivot the data for the number of pairs
     heatmap_pairs = get_pairs_number(data)
 
@@ -102,6 +154,18 @@ def get_pairs_heatmap(data, model_name, save_fig=False):
 
 
 def compute_diff(data_model1, data_model2, metric):
+    """
+    Compute the difference between two models for a given metric.
+
+    Args:
+        data_model1 (DataFrame): The first model's data.
+        data_model2 (DataFrame): The second model's data.
+        metric (str): The metric to compare (e.g., 'rmse_micro', 'rmse_macro').
+
+    Returns:
+        DataFrame: The difference between the two models for the specified metric.
+    """
+
     # Ensure the data is sorted consistently
     data_model1 = data_model1.sort_values(by=["threshold_similarity", "threshold_affinity"])
     data_model2 = data_model2.sort_values(by=["threshold_similarity", "threshold_affinity"])
@@ -114,14 +178,23 @@ def compute_diff(data_model1, data_model2, metric):
                                             columns="threshold_affinity",
                                             values=metric)
 
-    # Compute the difference
+    # Compute the difference between the two models
     heatmap_data_diff = heatmap_data_model1 - heatmap_data_model2
 
     return heatmap_data_diff
 
 
 def plot_diff_heatmap(data_model1, data_model2, metric, ax):
-    # Compute the difference
+    """
+    Plot a heatmap showing the difference between two models for a given metric.
+
+    Args:
+        data_model1 (DataFrame): The first model's data.
+        data_model2 (DataFrame): The second model's data.
+        metric (str): The metric to compare (e.g., 'rmse_micro', 'rmse_macro').
+        ax (Axes): The matplotlib axes to plot the heatmap on.
+    """
+    # Compute the difference between the two models
     heatmap_data_diff = compute_diff(data_model1, data_model2, metric)
 
     label = 'RMSE micro' if metric == 'rmse_micro' else 'RMSE macro'
@@ -131,6 +204,7 @@ def plot_diff_heatmap(data_model1, data_model2, metric, ax):
                 cbar_kws={'label': f'Difference in {label}'}, linewidths=.5,
                 annot_kws={"size": 20})
 
+    # Overlay a mask on the heatmap
     create_mask(data_model1, ax)
 
     ax.set_title(f'Difference in {label} \n Higher better', size=24)
@@ -149,7 +223,18 @@ def plot_diff_heatmap(data_model1, data_model2, metric, ax):
 
 
 def get_differential_heatmap(data_model1, data_model2, metric, title_suffix=None, save_fig=False):
+    """
+    Generate and display a differential heatmap comparing two models for a given metric.
+
+    Args:
+        data_model1 (DataFrame): The first model's data.
+        data_model2 (DataFrame): The second model's data.
+        metric (str): The metric to compare (e.g., 'rmse_micro', 'rmse_macro', or 'both').
+        title_suffix (str, optional): Suffix to use when saving the figure. Defaults to None.
+        save_fig (bool, optional): Whether to save the heatmap as a file. Defaults to False.
+    """
     if metric == 'both':
+        # Plot differential heatmaps for both RMSE micro and RMSE macro side by side
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 8))
 
         plot_diff_heatmap(data_model1, data_model2, 'rmse_micro', ax1)
@@ -158,6 +243,7 @@ def get_differential_heatmap(data_model1, data_model2, metric, title_suffix=None
             plt.savefig(f'../analysis/{title_suffix}_both_diff_heatmap.png',
                         dpi=300, bbox_inches='tight')
     else:
+        # Plot a single differential heatmap for the specified metric
         fig, ax = plt.subplots(figsize=(10, 8))
         plot_diff_heatmap(data_model1, data_model2, metric, ax)
         if save_fig:
@@ -167,34 +253,48 @@ def get_differential_heatmap(data_model1, data_model2, metric, title_suffix=None
     plt.show()
 
 
-def get_combined_mean_variance_heatmap(data_models1, data_models2, metric, title_suffix, save_fig=False):
+def get_combined_mean_sd_heatmap(data_models1, data_models2, metric, title_suffix, save_fig=False):
+    """
+    Generate and display a heatmap showing the mean and standard deviation of the differences
+    between two sets of models.
+
+    Args:
+        data_models1 (list[DataFrame]): A list of DataFrames for the first set of models.
+        data_models2 (list[DataFrame]): A list of DataFrames for the second set of models.
+        metric (str): The metric to compare (e.g., 'rmse_micro', 'rmse_macro').
+        title_suffix (str): Suffix to use when saving the figure.
+        save_fig (bool, optional): Whether to save the heatmap as a file. Defaults to False.
+    """
     difference_accumulator = []
 
     for data_model1, data_model2 in zip(data_models1, data_models2):
-        # Compute the difference
+        # Compute the difference for each pair of models
         heatmap_data_diff = compute_diff(data_model1, data_model2, metric)
-
         difference_accumulator.append(heatmap_data_diff)
 
+    # Concatenate the differences and compute the mean and standard deviation
     differences_df = pd.concat(difference_accumulator, axis=0)
     group_levels = differences_df.index.names
 
     mean_difference = differences_df.groupby(level=group_levels).mean()
-    variance_difference = differences_df.groupby(level=group_levels).var()
+    sd_difference = differences_df.groupby(level=group_levels).std()
 
+    # Combine the mean and standard deviation into a single annotation
     combined_annotation = (mean_difference.map(lambda x: f"{x:.4f}") + "\n± "
-                           + variance_difference.map(lambda x: f"{x:.4f}"))
+                           + sd_difference.map(lambda x: f"{x:.4f}"))
 
+    # Plot the heatmap for the combined mean and standard deviation
     plt.figure(figsize=(10, 8))
-    ax = sns.heatmap(mean_difference, annot=combined_annotation.to_numpy(), fmt="",  cmap='viridis',
-                     cbar_kws={'label': f'Mean and Variance of Difference in {metric}'}, linewidths=.5,
+    ax = sns.heatmap(mean_difference, annot=combined_annotation.to_numpy(), fmt="", cmap='viridis',
+                     cbar_kws={'label': f'Mean and Standard Deviation of Difference in {metric}'}, linewidths=.5,
                      annot_kws={"size": 10})
-    plt.title(f'Combined Mean and Variance Differential - {title_suffix}')
+    plt.title(f'Combined Mean and Standard Deviation Differential - {title_suffix}')
     ax.set_xlabel('Threshold Affinity', size=22)
     ax.set_ylabel('Threshold Similarity', size=22)
     plt.gca().invert_yaxis()
 
     if save_fig:
+        # Save the figure to a file
         plt.savefig(f'../analysis/{title_suffix}_{metric}_combined_heatmap.png', dpi=300, bbox_inches='tight')
     plt.show()
 

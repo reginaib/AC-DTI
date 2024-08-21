@@ -1,6 +1,7 @@
 from finetuning import start_training
 
 
+# Define a configuration class with the hyperparameters and settings for training
 class config:
     n_hidden_layers = 2
     n_targets = 229
@@ -16,6 +17,10 @@ class config:
     save_preds = False
     checkpoint = True
 
-
+# Start the training process with the specified mode and configuration
+# Arguments:
+# - mode: The mode of operation ('DDC')
+# - config: The configuration class containing all the hyperparameters and settings
+# - project_name: The name of the project in Weights and Biases where the training results will be logged
 start_training(mode='DDC', config=config, project_name='DDC_KIBA_cb_best_train')
 

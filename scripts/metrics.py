@@ -7,9 +7,23 @@ import torch
 
 
 def get_pairs(data, threshold_affinity=1, threshold_similarity=0.9):
+    """
+    Generates pairs of drugs according to the given thresholds.
+
+    Args:
+        data (DataFrame): The input data containing drug-target interactions.
+        threshold_affinity (float, optional): The minimum difference in affinity
+                                              between two drugs to consider them a significant pair. Defaults to 1.
+        threshold_similarity (float, optional): The similarity threshold for drug pairs.
+                                                Only pairs above this threshold are considered. Defaults to 0.9.
+
+    Returns:
+        DataFrame: A DataFrame containing paired drugs according to the given thresholds.
+    """
+    
     groups = []
 
-    # Loop through each group in the DataFrame 'unpivoted' grouped by 'target'
+    # Loop through each group in the DataFrame grouped by 'target'
     # 'g_name' holds the name of the target, 'group' contains the corresponding rows (related to specific target)
     for g_name, group in data.groupby('target', sort=False):
         # Calculate the similarity matrix for the drug molecules (related to specific target)
@@ -40,16 +54,41 @@ def get_pairs(data, threshold_affinity=1, threshold_similarity=0.9):
     return groups
 
 
-def r2_rmse(g):
-    r2 = r2_score(g['affinity'], g['predicted'])
-    rmse = np.sqrt(mean_squared_error(g['affinity'], g['predicted']))
+def r2_rmse(data):
+    """
+    Computes the R2 and RMSE for a given group of predictions.
+
+    Args:
+        g (DataFrame): The input data containing true and predicted affinity values.
+
+    Returns:
+        Series: A pandas Series containing the R2 and RMSE values.
+    """
+
+    r2 = r2_score(data['affinity'], data['predicted'])
+    rmse = np.sqrt(mean_squared_error(data['affinity'], data['predicted']))
     return pd.Series({'r2': r2, 'rmse': rmse})
 
 
 def get_performance(data, metric, averaging):
+    """
+    Computes performance metrics (R2, RMSE) for drug pairs.
+
+    Args:
+        data (DataFrame): The input data containing drug pairs and their affinity values.
+        metric (function): The metric function to apply (e.g., r2_rmse).
+        averaging (str): Type of averaging to perform ('micro' or 'macro').
+
+    Returns:
+        Series or DataFrame: Performance metrics averaged either across all data ('micro')
+                             or per target ('macro').
+    """
+
+    # Prepare the data by splitting it into two sets based on drug pairs
     df1 = data[['target', 'drug1', 'affinity1', 'predicted1']]
     df2 = data[['drug2', 'affinity2', 'predicted2']]
 
+    # Concatenate the two sets back together after renaming columns for consistency
     new_df = pd.concat([df1.rename(columns={'drug1': 'drug', 'affinity1': 'affinity',
                                             'predicted1': 'predicted'}),
                         df2.rename(columns={'drug2': 'drug', 'affinity2': 'affinity',
@@ -63,6 +102,18 @@ def get_performance(data, metric, averaging):
 
 
 def get_total_performance(data, metric, averaging):
+    """
+    Computes the overall performance metrics for the dataset.
+
+    Args:
+        data (DataFrame): The input data containing drug-target pairs.
+        metric (function): The metric function to apply (e.g., r2_rmse).
+        averaging (str): Type of averaging to perform ('micro' or 'macro').
+
+    Returns:
+        Series or DataFrame: Overall performance metrics across the dataset.
+    """
+
     if averaging == 'micro':
         return metric(data)
 
@@ -71,29 +122,51 @@ def get_total_performance(data, metric, averaging):
 
 
 def get_total_metrics(data, threshold_affinity: list[float], threshold_similarity: list[float]):
+    """
+    Computes performance metrics across different affinity and similarity thresholds.
+
+    Args:
+        data (DataFrame): The input data containing drug-target interactions.
+        threshold_affinity (list[float]): A list of affinity thresholds to evaluate.
+        threshold_similarity (list[float]): A list of similarity thresholds to evaluate.
+
+    Returns:
+        DataFrame: A pandas DataFrame containing the computed metrics for each combination
+                   of affinity and similarity thresholds.
+    """
+
+    # Calculate the total number of iterations required for all threshold combinations
     total_iterations = len(threshold_affinity) * len(threshold_similarity)
     results = []
 
+    # Initialize the progress bar for processing all threshold combinations
     with tqdm(total=total_iterations, desc="Processing All Thresholds") as pbar:
         for ta in threshold_affinity:
             for ts in threshold_similarity:
+                # Generate pairs of drugs for the current combination of thresholds
                 groups = get_pairs(data, ta, ts)
 
+                # Skip if no pairs are found for the current thresholds
                 if groups.empty:
                     print(f"No data available for threshold_affinity={ta} and threshold_similarity={ts}")
                     pbar.update(1)
                     continue
 
+                # Compute performance metrics for the generated pairs
                 number_of_pairs = len(groups)
                 groups_perf_micro = get_performance(groups, r2_rmse, 'micro')
                 groups_perf_macro = get_performance(groups, r2_rmse, 'macro')
+
+                # Store the results for the current threshold combination
                 tmp = [ta, ts, number_of_pairs]
                 tmp.extend(groups_perf_micro)
                 tmp.extend(groups_perf_macro)
                 results.append(tmp)
 
+                # Update the progress bar
                 pbar.update(1)
 
+    # Convert the results list into a DataFrame
     results = pd.DataFrame(results, columns=['threshold_affinity', 'threshold_similarity', 'number_of_pairs',
                                              'r2_micro', 'rmse_micro', 'r2_macro', 'rmse_macro'])
     return results
@@ -102,18 +175,20 @@ def get_total_metrics(data, threshold_affinity: list[float], threshold_similarit
 def get_results(drug_target_data, preds, file_name,
                 threshold_affinity=None, threshold_similarity=None):
     """
-    This function processes drug-target interaction data and predictions to compute metrics
+    Processes drug-target interaction data and predictions to compute metrics
     based on different affinity and similarity thresholds.
 
-    Parameters:
-    - drug_target_data (str): Path to the CSV file containing drug-target interaction data.
-    - preds (str): Path to the file containing predicted values for drug-target pairs.
-    - file_name (str): The base name for saving output CSV files.
-    - threshold_affinity (list[float]): A list of affinity thresholds to evaluate.
-    - threshold_similarity (list[float]): A list of similarity thresholds to evaluate.
+    Args:
+        drug_target_data (str): Path to the CSV file containing drug-target interaction data.
+        preds (str): Path to the file containing predicted values for drug-target pairs.
+        file_name (str): The base name for saving output CSV files.
+        threshold_affinity (list[float], optional): A list of affinity thresholds to evaluate.
+                                                    Defaults to [0, 1, 1.5, 2, 2.5, 3, 3.5, 4].
+        threshold_similarity (list[float], optional): A list of similarity thresholds to evaluate.
+                                                      Defaults to [0, 0.1, 0.3, 0.5, 0.7, 0.9].
 
     Returns:
-    - results (DataFrame): A pandas DataFrame containing computed metrics across all threshold combinations.
+        DataFrame: A pandas DataFrame containing computed metrics across all threshold combinations.
     """
 
     # If no thresholds are provided, use default lists

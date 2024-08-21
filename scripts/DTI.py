@@ -1,6 +1,7 @@
 from finetuning import start_training
 
 
+# Define a configuration class with various hyperparameters and settings for training
 class config:
     n_hidden_layers = 1
     n_targets = 676
@@ -24,4 +25,9 @@ class config:
     checkpoint = False
 
 
+# Start the training process with the specified mode and configuration
+# Arguments:
+# - mode: The mode of operation ('DTI')
+# - config: The configuration class containing all the hyperparameters and settings
+# - project_name: The name of the project in Weights and Biases where the training results will be logged
 start_training(mode='DTI', config=config, project_name='DTI_vary_all_best_train')
