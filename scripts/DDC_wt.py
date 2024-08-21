@@ -2,21 +2,20 @@ from finetuning import start_training
 
 
 class config:
-    n_hidden_layers = 1
-    n_targets = 666
-    hidden_dim_d = 256
-    hidden_dim_t = 128
-    hidden_dim_c = 1024
+    n_hidden_layers = 2
+    n_targets = 229
+    hidden_dim_d = 128
+    hidden_dim_t = 256
+    hidden_dim_c = 768
     lr = 0.001
     dr = 0.2
     patience = 15
     accelerator = 'gpu'
-    max_epochs = 5
-    csv = './analysis/kiba_pairs_aff_diffs_split_r_wt.csv'
+    max_epochs = 100
+    csv = './analysis/kiba_ddc_cb_ta1_ts0.9.csv'
     save_preds = False
-    checkpoint = False
-    task = 'regression'
+    checkpoint = True
 
 
-start_training(mode='DDC', config=config, project_name='DDC_ACNet_tryout')
+start_training(mode='DDC', config=config, project_name='DDC_KIBA_cb_best_train')
 

@@ -10,12 +10,26 @@ from pytorch_lightning import LightningModule
 
 
 class DrugDrugCliffNN(LightningModule):
+    """
+    A model for predicting activity cliffs.
+
+    Args:
+        n_hidden_layers (int): Number of hidden layers in the drug encoder.
+        hidden_dim_d (int): Size of the hidden layers in the drug encoder.
+        hidden_dim_t (int): Size of the embedding layer for target encoding.
+        hidden_dim_c (int): Size of the classifier hidden layer.
+        lr (float): Learning rate for the optimizer.
+        dr (float): Dropout rate for regularization.
+        n_targets (int): Number of distinct targets in the dataset.
+        input_dim (int, optional): Input size of the drug features. Defaults to 1024.
+        pos_weight (float, optional): Weight for positive samples in binary classification. Defaults to 2.
+    """
+
     def __init__(self, n_hidden_layers, hidden_dim_d, hidden_dim_t, hidden_dim_c, lr, dr, n_targets,
-                 input_dim=1024, pos_weight=2, task=None):
+                 input_dim=1024, pos_weight=2):
         super().__init__()
         self.lr = lr
         self.pos_weight = pos_weight
-        self.task = task
 
         # Encoder for the drug representations
         layers = [nn.Linear(input_dim, hidden_dim_d), nn.ReLU(), nn.Dropout(dr)]
@@ -34,52 +48,32 @@ class DrugDrugCliffNN(LightningModule):
             nn.Linear(hidden_dim_c, 1)
         )
 
-        if task == 'classification':
-            self.metrics_tr = MetricCollection([BinaryRecall(),
-                                                BinaryAccuracy(),
-                                                BinaryF1Score(),
-                                                BinaryPrecision(),
-                                                BinaryAUROC(),
-                                                BinaryMatthewsCorrCoef()],
-                                               prefix='Train/')
-            self.metric_prc_tr = BinaryAUPRC()
+        self.metrics_tr = MetricCollection([BinaryRecall(),
+                                            BinaryAccuracy(),
+                                            BinaryF1Score(),
+                                            BinaryPrecision(),
+                                            BinaryAUROC(),
+                                            BinaryMatthewsCorrCoef()],
+                                           prefix='Train/')
+        self.metric_prc_tr = BinaryAUPRC()
 
-            self.metrics_v = MetricCollection([BinaryRecall(),
-                                               BinaryAccuracy(),
-                                               BinaryF1Score(),
-                                               BinaryPrecision(),
-                                               BinaryAUROC(),
-                                               BinaryMatthewsCorrCoef()],
-                                              prefix='Validation/')
-            self.metric_prc_v = BinaryAUPRC()
+        self.metrics_v = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryMatthewsCorrCoef()],
+                                          prefix='Validation/')
+        self.metric_prc_v = BinaryAUPRC()
 
-            self.metrics_t = MetricCollection([BinaryRecall(),
-                                               BinaryAccuracy(),
-                                               BinaryF1Score(),
-                                               BinaryPrecision(),
-                                               BinaryAUROC(),
-                                               BinaryMatthewsCorrCoef()],
-                                              prefix='Test/')
-            self.metric_prc_t = BinaryAUPRC()
-
-        elif task == 'regression':
-            self.metrics_tr = MetricCollection({'RMSE': MeanSquaredError(squared=False),
-                                                'MSE': MeanSquaredError(),
-                                                'MAE': MeanAbsoluteError(),
-                                                'R2': R2Score(),
-                                            }, prefix='Train/')
-
-            self.metrics_v = MetricCollection({'RMSE': MeanSquaredError(squared=False),
-                                                'MSE': MeanSquaredError(),
-                                                'MAE': MeanAbsoluteError(),
-                                                'R2': R2Score(),
-                                            }, prefix='Validation/')
-
-            self.metrics_t = MetricCollection({'RMSE': MeanSquaredError(squared=False),
-                                                'MSE': MeanSquaredError(),
-                                                'MAE': MeanAbsoluteError(),
-                                                'R2': R2Score(),
-                                            }, prefix='Test/')
+        self.metrics_t = MetricCollection([BinaryRecall(),
+                                           BinaryAccuracy(),
+                                           BinaryF1Score(),
+                                           BinaryPrecision(),
+                                           BinaryAUROC(),
+                                           BinaryMatthewsCorrCoef()],
+                                          prefix='Test/')
+        self.metric_prc_t = BinaryAUPRC()
 
         self.save_hyperparameters()
 
@@ -94,82 +88,55 @@ class DrugDrugCliffNN(LightningModule):
         return self.classifier(combined_out).flatten()
 
     def training_step(self, batch):
-        if self.task == 'classification':
-            drug1, drug2, clf, target = batch
-            preds = self(drug1, drug2, target)
-            ls = F.binary_cross_entropy_with_logits(preds, clf,
-                                                    pos_weight=torch.tensor(self.pos_weight, device=self.device))
-            self.metrics_tr.update(preds.sigmoid(), clf.long())
-            self.metric_prc_tr.update(preds.sigmoid(), clf.long())
-            self.log('Train/BCELoss', ls)
-
-        elif self.task == 'regression':
-            drug1, drug2, diff, target = batch
-            preds = self(drug1, drug2, target)
-            ls = F.l1_loss(preds, diff)
-            self.metrics_tr.update(preds, diff)
-            self.log('Train/MAELoss', ls)
+        drug1, drug2, clf, target = batch
+        preds = self(drug1, drug2, target)
+        ls = F.binary_cross_entropy_with_logits(preds, clf,
+                                                pos_weight=torch.tensor(self.pos_weight, device=self.device))
+        self.metrics_tr.update(preds.sigmoid(), clf.long())
+        self.metric_prc_tr.update(preds.sigmoid(), clf.long())
+        self.log('Train/BCELoss', ls)
 
         return ls
 
     def validation_step(self, batch, _):
-        if self.task == 'classification':
-            drug1, drug2, clf, target = batch
-            preds = self(drug1, drug2, target)
-            ls = F.binary_cross_entropy_with_logits(preds, clf,
-                                                    pos_weight=torch.tensor(self.pos_weight, device=self.device))
-            self.metrics_v.update(preds.sigmoid(), clf.long())
-            self.metric_prc_v.update(preds.sigmoid(), clf.long())
-            self.log('Validation/BCELoss', ls)
-
-        elif self.task == 'regression':
-            drug1, drug2, diff, target = batch
-            preds = self(drug1, drug2, target)
-            ls = F.l1_loss(preds, diff)
-            self.metrics_v.update(preds, diff)
-            self.log('Validation/MAELoss', ls)
+        drug1, drug2, clf, target = batch
+        preds = self(drug1, drug2, target)
+        ls = F.binary_cross_entropy_with_logits(preds, clf,
+                                                pos_weight=torch.tensor(self.pos_weight, device=self.device))
+        self.metrics_v.update(preds.sigmoid(), clf.long())
+        self.metric_prc_v.update(preds.sigmoid(), clf.long())
+        self.log('Validation/BCELoss', ls)
 
     def test_step(self, batch, *_):
-        if self.task == 'classification':
-            drug1, drug2, clf, target = batch
-            preds = self(drug1, drug2, target)
-            ls = F.binary_cross_entropy_with_logits(preds, clf,
-                                                    pos_weight=torch.tensor(self.pos_weight, device=self.device))
-            self.metrics_t.update(preds.sigmoid(), clf.long())
-            self.metric_prc_t.update(preds.sigmoid(), clf.long())
-            self.log('Test/BCELoss', ls)
-
-        elif self.task == 'regression':
-            drug1, drug2, diff, target = batch
-            preds = self(drug1, drug2, target)
-            ls = F.l1_loss(preds, diff)
-            self.metrics_t.update(preds, diff)
-            self.log('Test/MAELoss', ls)
+        drug1, drug2, clf, target = batch
+        preds = self(drug1, drug2, target)
+        ls = F.binary_cross_entropy_with_logits(preds, clf,
+                                                pos_weight=torch.tensor(self.pos_weight, device=self.device))
+        self.metrics_t.update(preds.sigmoid(), clf.long())
+        self.metric_prc_t.update(preds.sigmoid(), clf.long())
+        self.log('Test/BCELoss', ls)
 
     def on_train_epoch_end(self):
         self.log_dict(self.metrics_tr.compute())
         self.metrics_tr.reset()
 
-        if self.task == 'classification':
-            self.log('Train/BinaryAUPRC', self.metric_prc_tr.compute())
-            self.metric_prc_tr.reset()
+        self.log('Train/BinaryAUPRC', self.metric_prc_tr.compute())
+        self.metric_prc_tr.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.metrics_v.compute())
         self.metrics_v.reset()
 
-        if self.task == 'classification':
-            self.log('Validation/BinaryAUPRC', self.metric_prc_v.compute())
-            self.metric_prc_v.reset()
+        self.log('Validation/BinaryAUPRC', self.metric_prc_v.compute())
+        self.metric_prc_v.reset()
 
 
     def on_test_epoch_end(self):
         self.log_dict(self.metrics_t.compute())
         self.metrics_t.reset()
 
-        if self.task == 'classification':
-            self.log('Test/BinaryAUPRC', self.metric_prc_t.compute())
-            self.metric_prc_t.reset()
+        self.log('Test/BinaryAUPRC', self.metric_prc_t.compute())
+        self.metric_prc_t.reset()
 
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=self.lr)
