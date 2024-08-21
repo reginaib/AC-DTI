@@ -2,6 +2,8 @@ from sklearn.metrics import r2_score, mean_squared_error
 import pandas as pd
 import numpy as np
 from cliffs import get_similarity_matrix
+from tqdm import tqdm
+import torch
 
 
 def get_pairs(data, threshold_affinity=1, threshold_similarity=0.9):
@@ -11,7 +13,7 @@ def get_pairs(data, threshold_affinity=1, threshold_similarity=0.9):
     # 'g_name' holds the name of the target, 'group' contains the corresponding rows (related to specific target)
     for g_name, group in data.groupby('target', sort=False):
         # Calculate the similarity matrix for the drug molecules (related to specific target)
-        sim = get_similarity_matrix(group.smiles.to_list(), similarity=threshold_similarity)
+        sim = get_similarity_matrix(group.SMILES.to_list(), similarity=threshold_similarity)
         # Find non-zero elements in the similarity matrix, indicating pairs of similar drugs
         i, j = sim.nonzero()
 
@@ -69,21 +71,84 @@ def get_total_performance(data, metric, averaging):
 
 
 def get_total_metrics(data, threshold_affinity: list[float], threshold_similarity: list[float]):
+    total_iterations = len(threshold_affinity) * len(threshold_similarity)
     results = []
-    for ta in threshold_affinity:
-        for ts in threshold_similarity:
-            groups = get_pairs(data, ta, ts)
 
-            if groups.empty:
-                print(f"No data available for threshold_affinity={ta} and threshold_similarity={ts}")
-                continue
-            number_of_pairs = len(groups)
-            groups_perf_micro = get_performance(groups, r2_rmse, 'micro')
-            groups_perf_macro = get_performance(groups, r2_rmse, 'macro')
-            tmp = [ta, ts, number_of_pairs]
-            tmp.extend(groups_perf_micro)
-            tmp.extend(groups_perf_macro)
-            results.append(tmp)
+    with tqdm(total=total_iterations, desc="Processing All Thresholds") as pbar:
+        for ta in threshold_affinity:
+            for ts in threshold_similarity:
+                groups = get_pairs(data, ta, ts)
+
+                if groups.empty:
+                    print(f"No data available for threshold_affinity={ta} and threshold_similarity={ts}")
+                    pbar.update(1)
+                    continue
+
+                number_of_pairs = len(groups)
+                groups_perf_micro = get_performance(groups, r2_rmse, 'micro')
+                groups_perf_macro = get_performance(groups, r2_rmse, 'macro')
+                tmp = [ta, ts, number_of_pairs]
+                tmp.extend(groups_perf_micro)
+                tmp.extend(groups_perf_macro)
+                results.append(tmp)
+
+                pbar.update(1)
+
     results = pd.DataFrame(results, columns=['threshold_affinity', 'threshold_similarity', 'number_of_pairs',
                                              'r2_micro', 'rmse_micro', 'r2_macro', 'rmse_macro'])
     return results
+
+
+def get_results(drug_target_data, preds, file_name,
+                threshold_affinity=None, threshold_similarity=None):
+    """
+    This function processes drug-target interaction data and predictions to compute metrics
+    based on different affinity and similarity thresholds.
+
+    Parameters:
+    - drug_target_data (str): Path to the CSV file containing drug-target interaction data.
+    - preds (str): Path to the file containing predicted values for drug-target pairs.
+    - file_name (str): The base name for saving output CSV files.
+    - threshold_affinity (list[float]): A list of affinity thresholds to evaluate.
+    - threshold_similarity (list[float]): A list of similarity thresholds to evaluate.
+
+    Returns:
+    - results (DataFrame): A pandas DataFrame containing computed metrics across all threshold combinations.
+    """
+
+    # If no thresholds are provided, use default lists
+    if threshold_affinity is None:
+        threshold_affinity = [0, 1, 1.5, 2, 2.5, 3, 3.5, 4]
+    if threshold_similarity is None:
+        threshold_similarity = [0, 0.1, 0.3, 0.5, 0.7, 0.9]
+
+    # Read the drug-target interaction data from the CSV file
+    drug_target_data = pd.read_csv(drug_target_data)
+
+    # Filter the data to include only the test set (where 'split' column equals 2)
+    test_data = drug_target_data[drug_target_data['split'] == 2]
+
+    # Remove the 'split' column from the test data, as it's no longer needed
+    del test_data['split']
+
+    # Load the predictions from the specified file
+    pred_ws = torch.load(preds)
+
+    # Insert the predicted values as a new column in the test data
+    test_data.insert(4, 'predicted', pred_ws)
+
+    # Save the test data with predictions to a new CSV file
+    test_data.to_csv(f'../analysis/{file_name}.csv', index=False)
+
+    # Compute performance metrics for all combinations of affinity and similarity thresholds
+    results = get_total_metrics(test_data,
+                                threshold_affinity=threshold_affinity,
+                                threshold_similarity=threshold_similarity)
+
+    # Save the computed metrics to a CSV file
+    results.to_csv(f'../analysis/preds/{file_name}_metrics.csv', index=False)
+
+    # Return the DataFrame containing the computed metrics
+    return results
+
+

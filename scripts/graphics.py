@@ -20,7 +20,7 @@ def create_mask(data, ax):
     mask = pairs_data < 100
 
     # Overlay the mask with transparency
-    mask_color = mcolors.to_rgba('grey', alpha=0.7)
+    mask_color = mcolors.to_rgba('grey', alpha=0.9)
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
             if mask.iloc[i, j]:
@@ -151,7 +151,6 @@ def plot_diff_heatmap(data_model1, data_model2, metric, ax):
 def get_differential_heatmap(data_model1, data_model2, metric, title_suffix=None, save_fig=False):
     if metric == 'both':
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 8))
-        pairs_data = get_pairs_number(data_model1)
 
         plot_diff_heatmap(data_model1, data_model2, 'rmse_micro', ax1)
         plot_diff_heatmap(data_model1, data_model2, 'rmse_macro', ax2)
