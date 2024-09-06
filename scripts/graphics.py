@@ -39,7 +39,7 @@ def create_mask(data, ax):
     mask = pairs_data < 100
 
     # Overlay the mask with transparency
-    mask_color = mcolors.to_rgba('grey', alpha=0.9)
+    mask_color = mcolors.to_rgba('grey', alpha=0.5)
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
             if mask.iloc[i, j]:
@@ -113,7 +113,7 @@ def get_heatmap(data, metric, model_name=None, save_fig=False):
         fig, ax = plt.subplots(figsize=(10, 8))
         plot_heatmap(data, metric, ax)
         if save_fig:
-            plt.savefig(f'../analysis/{model_name}_{metric}_heatmap.png', dpi=300, bbox_inches='tight')
+            plt.savefig(f'../analysis/figs/{model_name}_{metric}_heatmap.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -136,7 +136,10 @@ def get_pairs_heatmap(data, model_name, save_fig=False):
     ax = sns.heatmap(heatmap_pairs,
                      annot=True, fmt="d", cmap='viridis',
                      cbar_kws={'label': 'Number of Pairs'}, linewidths=.5,
-                     annot_kws={"size": 14})
+                     annot_kws={"size": 12})
+
+    # Overlay a mask on the heatmap
+    create_mask(data, ax)
 
     plt.title('Number of Pairs per Threshold Combination', size=22)
     ax.set_xlabel('Threshold Affinity', size=20)
@@ -151,6 +154,74 @@ def get_pairs_heatmap(data, model_name, save_fig=False):
     cbar = ax.collections[0].colorbar
     cbar.ax.yaxis.label.set_size(20)
     cbar.ax.tick_params(labelsize=20)
+
+    if save_fig:
+        plt.savefig(f'../analysis/figs/{model_name}_pair_number_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+def plot_mean_sd_heatmap(data, metric, ax):
+    metric_accumulator = []
+
+    for data_model1 in data:
+        # Extract the metric for each model and pivot it into a heatmap format
+        heatmap_data = data_model1.pivot(index="threshold_similarity",
+                                         columns="threshold_affinity",
+                                         values=metric)
+        metric_accumulator.append(heatmap_data)
+
+    label = 'RMSE micro' if metric == 'rmse_micro' else 'RMSE macro'
+    # Concatenate the metric DataFrames and compute the mean and standard deviation
+    concatenated_df = pd.concat(metric_accumulator, axis=0)
+    group_levels = concatenated_df.index.names
+
+    mean_metric = concatenated_df.groupby(level=group_levels).mean()
+    sd_metric = concatenated_df.groupby(level=group_levels).std()
+
+    # Combine the mean and standard deviation into a single annotation
+    combined_annotation = (mean_metric.map(lambda x: f"{x:.3f}") + "\n±\n "
+                           + sd_metric.map(lambda x: f"{x:.3f}"))
+
+    # Plot the heatmap for the mean and standard deviation
+    sns.heatmap(mean_metric, annot=combined_annotation.to_numpy(), fmt="", cmap='viridis', ax=ax,
+                cbar_kws={'label': f'Mean and Standard Deviation of {metric}'}, linewidths=.5,
+                annot_kws={"size": 14})
+
+    # Overlay a mask on the heatmap
+    for data_model1 in data:
+        create_mask(data_model1, ax)
+
+    ax.set_title(f'Mean and Standard Deviation for {label}', size=24)
+    ax.set_xlabel('Threshold Affinity', size=26)
+    ax.set_ylabel('Threshold Similarity', size=26)
+    ax.invert_yaxis()
+
+    # Increase the size of the tick labels
+    ax.tick_params(axis='x', labelsize=22)
+    ax.tick_params(axis='y', labelsize=22)
+
+    # Increase the size of the color bar label
+    cbar = ax.collections[0].colorbar
+    cbar.ax.yaxis.label.set_size(22)
+    cbar.ax.tick_params(labelsize=20)
+
+
+def get_mean_sd_heatmap(data, metric, model_name=None, save_fig=False):
+    if metric == 'both':
+        # Plot heatmaps for both RMSE micro and RMSE macro side by side
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 8))
+        plot_mean_sd_heatmap(data, 'rmse_micro', ax1)
+        plot_mean_sd_heatmap(data, 'rmse_macro', ax2)
+
+        if save_fig:
+            plt.savefig(f'../analysis/figs/{model_name}_both_heatmap.png', dpi=300, bbox_inches='tight')
+    else:
+        # Plot a single heatmap for the specified metric
+        fig, ax = plt.subplots(figsize=(10, 8))
+        plot_mean_sd_heatmap(data, metric, ax)
+        if save_fig:
+            plt.savefig(f'../analysis/figs/{model_name}_{metric}_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.show()
 
 
 def compute_diff(data_model1, data_model2, metric):
@@ -240,20 +311,20 @@ def get_differential_heatmap(data_model1, data_model2, metric, title_suffix=None
         plot_diff_heatmap(data_model1, data_model2, 'rmse_micro', ax1)
         plot_diff_heatmap(data_model1, data_model2, 'rmse_macro', ax2)
         if save_fig:
-            plt.savefig(f'../analysis/{title_suffix}_both_diff_heatmap.png',
+            plt.savefig(f'../analysis/figs/{title_suffix}_both_diff_heatmap.png',
                         dpi=300, bbox_inches='tight')
     else:
         # Plot a single differential heatmap for the specified metric
         fig, ax = plt.subplots(figsize=(10, 8))
         plot_diff_heatmap(data_model1, data_model2, metric, ax)
         if save_fig:
-            plt.savefig(f'../analysis/{title_suffix}_{metric}_diff_heatmap.png',
+            plt.savefig(f'../analysis/figs/{title_suffix}_{metric}_diff_heatmap.png',
                         dpi=300, bbox_inches='tight')
 
     plt.show()
 
 
-def get_combined_mean_sd_heatmap(data_models1, data_models2, metric, title_suffix, save_fig=False):
+def get_mean_sd_diff_heatmap(data_models1, data_models2, metric, title_suffix, save_fig=False):
     """
     Generate and display a heatmap showing the mean and standard deviation of the differences
     between two sets of models.
@@ -280,7 +351,7 @@ def get_combined_mean_sd_heatmap(data_models1, data_models2, metric, title_suffi
     sd_difference = differences_df.groupby(level=group_levels).std()
 
     # Combine the mean and standard deviation into a single annotation
-    combined_annotation = (mean_difference.map(lambda x: f"{x:.4f}") + "\n± "
+    combined_annotation = (mean_difference.map(lambda x: f"{x:.4f}") + "\n±"
                            + sd_difference.map(lambda x: f"{x:.4f}"))
 
     # Plot the heatmap for the combined mean and standard deviation
@@ -295,6 +366,6 @@ def get_combined_mean_sd_heatmap(data_models1, data_models2, metric, title_suffi
 
     if save_fig:
         # Save the figure to a file
-        plt.savefig(f'../analysis/{title_suffix}_{metric}_combined_heatmap.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'../analysis/figs/{title_suffix}_{metric}_combined_heatmap.png', dpi=300, bbox_inches='tight')
     plt.show()
 
