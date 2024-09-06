@@ -6,7 +6,6 @@ from rdkit.Chem import MolFromSmiles
 from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 from rdkit.Chem.Scaffolds.MurckoScaffold import MakeScaffoldGeneric as GraphFramework, GetScaffoldForMol
 from rdkit.DataStructs import TanimotoSimilarity
-from tqdm import trange
 
 
 RDLogger.DisableLog('rdApp.error')
@@ -96,7 +95,7 @@ def get_similarity_matrix(smiles, radius: int = 2, nBits: int = 1024, similarity
     # Create a similarity matrix. by default all molecules are not similar
     matrix = np.zeros([size, size], dtype=bool)
     # Calculate the upper triangle of the similarity matrix
-    for i in trange(size - 1):
+    for i in range(size - 1):
         for j in range(i + 1, size):
             # Check for similarity based on different criteria
             if levenshtein_sim and levenshtein(smiles[i], smiles[j]) > similarity:
