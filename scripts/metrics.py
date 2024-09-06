@@ -4,6 +4,7 @@ import numpy as np
 from cliffs import get_similarity_matrix
 from tqdm import tqdm
 import torch
+from rdkit import Chem
 
 
 def get_pairs(data, threshold_affinity=1, threshold_similarity=0.9):
@@ -173,6 +174,7 @@ def get_total_metrics(data, threshold_affinity: list[float], threshold_similarit
 
 
 def get_results(drug_target_data, preds, file_name,
+                save_preds = False,
                 threshold_affinity=None, threshold_similarity=None):
     """
     Processes drug-target interaction data and predictions to compute metrics
@@ -206,17 +208,19 @@ def get_results(drug_target_data, preds, file_name,
     # Remove the 'split' column from the test data, as it's no longer needed
     del test_data['split']
 
+    test_data_cleaned = test_data[~test_data['SMILES'].apply(Chem.MolFromSmiles).isna()]
     # Load the predictions from the specified file
-    pred_ws = torch.load(preds)
+    preds = torch.load(preds)
 
     # Insert the predicted values as a new column in the test data
-    test_data.insert(4, 'predicted', pred_ws)
+    test_data_cleaned.insert(4, 'predicted', preds)
 
     # Save the test data with predictions to a new CSV file
-    test_data.to_csv(f'../analysis/{file_name}.csv', index=False)
+    if save_preds:
+        test_data_cleaned.to_csv(f'../analysis/{file_name}.csv', index=False)
 
     # Compute performance metrics for all combinations of affinity and similarity thresholds
-    results = get_total_metrics(test_data,
+    results = get_total_metrics(test_data_cleaned,
                                 threshold_affinity=threshold_affinity,
                                 threshold_similarity=threshold_similarity)
 
