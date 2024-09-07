@@ -6,7 +6,6 @@
 ## Sweep and Training Scripts
 * `DDC_sweep.py`: Script to run parameter sweeps for the DDC task.
 * `DTI_sweep.py` Script to run parameter sweeps for the DTI baseline and transfer learning task.
-* `DDC_sweep_bn.py`: Script to analyze the effect of the bottleneck on the DDC task.
 
 
 * `DDC_wt.py`:  Script to train the DDC model with specified parameters.
