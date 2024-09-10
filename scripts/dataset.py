@@ -9,7 +9,7 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 
 
-def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9, task='classification'):
+def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
     pairs = []
 
     # Loop through each group in the data grouped by 'target'
@@ -27,25 +27,16 @@ def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9, task='class
         affinity_diff = np.abs(d1.affinity.values - d2.affinity.values)
 
         # Prepare a DataFrame for the current group with either cliff status or affinity difference
-        if task == 'classification':
-            cliffs = (affinity_diff > threshold_affinity).astype(int)
-            current_pairs = pd.DataFrame({
-                'drug1': d1['drug'].values,
-                'drug2': d2['drug'].values,
-                'smiles1': d1['SMILES'].values,
-                'smiles2': d2['SMILES'].values,
-                'cliff': cliffs,
-                'target': g_name
-            })
-        elif task == 'regression':
-            current_pairs = pd.DataFrame({
-                'drug1': d1['drug'].values,
-                'drug2': d2['drug'].values,
-                'smiles1': d1['SMILES'].values,
-                'smiles2': d2['SMILES'].values,
-                'affinity_difference': affinity_diff,
-                'target': g_name
-            })
+
+        cliffs = (affinity_diff > threshold_affinity).astype(int)
+        current_pairs = pd.DataFrame({
+            'drug1': d1['drug'].values,
+            'drug2': d2['drug'].values,
+            'smiles1': d1['SMILES'].values,
+            'smiles2': d2['SMILES'].values,
+            'cliff': cliffs,
+            'target': g_name
+        })
 
         pairs.append(current_pairs)  # Append the current group's pairs to the list
 
