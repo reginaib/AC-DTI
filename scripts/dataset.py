@@ -1,12 +1,9 @@
 import pandas as pd
 import numpy as np
 import os
-import json
 from sklearn.model_selection import train_test_split
 from cliffs import get_similarity_matrix
-from itertools import combinations
 from tqdm import tqdm
-from joblib import Parallel, delayed
 
 
 def get_cliffs(data, threshold_affinity=1, threshold_similarity=0.9):
