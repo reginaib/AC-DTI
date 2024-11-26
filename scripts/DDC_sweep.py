@@ -26,7 +26,7 @@ sweep_config = {
             "patience": {"value": 15},
             "accelerator": {"value": "gpu"},
             "max_epochs": {"value": 100},
-            "csv": {"value": './analysis/kiba_ddc_cb_ta1_ts0.9.csv'},
+            "csv": {"value": '../analysis/kiba_ddc_cb_ta1_ts0.9.csv'},
             "save_preds": {"value": False},
             "checkpoint": {"value": False},
         }

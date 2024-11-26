@@ -13,7 +13,7 @@ class config:
     patience = 15
     accelerator = 'gpu'
     max_epochs = 100
-    csv = './analysis/kiba_ddc_cb_ta1_ts0.9.csv'
+    csv = '../analysis/kiba_ddc_cb_ta1_ts0.9.csv'
     save_preds = False
     checkpoint = True
 

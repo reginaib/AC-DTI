@@ -16,7 +16,7 @@ class config:
     dataset_name = './analysis/kiba_dti_cb_split.csv'
     # pre_trained_d_encoder_path = './results/DDC_best_epoch_23.ckpt'
     pre_trained_d_encoder_path = None
-    # pre_trained_t_encoder_path = './results/DDC_best_epoch_23.ckpt'
+    # pre_trained_t_encoder_path = '../results/DDC_best_epoch_23.ckpt'
     pre_trained_t_encoder_path = None
     preds_name = 'DTI_KIBA_cb_bl_best_preds_3'
     freeze = False
