@@ -54,7 +54,7 @@ def initialize_model(mode, config, logger):
         mode='min')
 
     # Set up checkpoint callback to save the model during training
-    checkpoint_callback = ModelCheckpoint(filename='./results/{epoch:02d}')
+    checkpoint_callback = ModelCheckpoint(filename='../results/{epoch:02d}')
 
     callbacks = [early_stop_callback]
 
@@ -79,7 +79,7 @@ def initialize_model(mode, config, logger):
     # Save the predictions if specified in the config
     if config.save_preds:
         predictions = torch.cat(trainer.predict(model, data.test_dataloader()))
-        torch.save(predictions, f'./results/{config.preds_name}')
+        torch.save(predictions, f'../results/{config.preds_name}')
 
 
 def optimize_sweep():
@@ -103,7 +103,7 @@ def start_sweep(config, project_name, num_config=15):
         num_config (int, optional): Number of configurations to run during the sweep. Defaults to 15.
     """
 
-    wandb.login(key='...')
+    wandb.login()
     sweep_id = wandb.sweep(config, project=project_name)
     wandb.agent(sweep_id=sweep_id, function=optimize_sweep, count=num_config)
 
@@ -118,6 +118,6 @@ def start_training(mode, config, project_name):
         project_name (str): The name of the Weights and Biases project.
     """
 
-    wandb.login(key='...')
-    logger = WandbLogger(project=project_name, job_type='train', log_model='all')
+    wandb.login()
+    logger = WandbLogger(project=project_name, job_type='train')
     initialize_model(mode, config, logger)
